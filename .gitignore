@@ -1,0 +1,26 @@
+# macOS 시스템 파일 무시
+.DS_Store
+
+# 기타 일반적인 무시 파일 예시
+*.log
+node_modules/
+.env
+dist/
+build/
+
+# TypeScript
+*.tsbuildinfo
+
+# IDE/Editor
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+
+# Webpack/Vite 등 번들 결과물
+/public/*.js
+/public/*.js.map
+
+# 테스트 커버리지
+coverage/

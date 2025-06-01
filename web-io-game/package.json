@@ -1,0 +1,22 @@
+{
+  "name": "web-io-game",
+  "version": "1.0.0",
+  "description": "A web-based I/O game built with TypeScript.",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "build": "tsc",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "socket.io": "^4.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^4.5.0",
+    "ts-node": "^10.0.0",
+    "nodemon": "^2.0.0"
+  },
+  "author": "Your Name",
+  "license": "MIT"
+}
