@@ -15,7 +15,9 @@
   "devDependencies": {
     "typescript": "^4.5.0",
     "ts-node": "^10.0.0",
-    "nodemon": "^2.0.0"
+    "nodemon": "^2.0.0",
+    "vit": "^0.0.1",
+    "vite": "^6.3.5"
   },
   "author": "Your Name",
   "license": "MIT"

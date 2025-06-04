@@ -1,31 +1,13 @@
-class Client {
-    private socket: WebSocket;
+import Phaser from "phaser";
+import WormScene from "./WormScene";
 
-    constructor(private serverUrl: string) {}
-
-    connect() {
-        this.socket = new WebSocket(this.serverUrl);
-
-        this.socket.onopen = () => {
-            console.log('Connected to the server');
-        };
-
-        this.socket.onmessage = (event) => {
-            this.receiveUpdate(event.data);
-        };
-
-        this.socket.onclose = () => {
-            console.log('Disconnected from the server');
-        };
-    }
-
-    sendAction(action: string) {
-        this.socket.send(action);
-    }
-
-    receiveUpdate(data: string) {
-        console.log('Received update from server:', data);
-    }
-}
-
-export default Client;
+new Phaser.Game({
+    type: Phaser.AUTO,
+    parent: "app",
+    backgroundColor: "#222",
+    scale: {
+        mode: Phaser.Scale.RESIZE,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+    },
+    scene: WormScene,
+});
