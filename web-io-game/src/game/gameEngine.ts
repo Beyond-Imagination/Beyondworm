@@ -1,4 +1,10 @@
 class GameEngine {
+    
+    
+    
+    // Should remove
+
+
     private gameState: any; // Replace 'any' with the actual type for game state
     private isRunning: boolean;
 
@@ -14,7 +20,7 @@ class GameEngine {
 
     update(): void {
         if (!this.isRunning) return;
-        // Update game logic here
+        // Update game logic hereÍ
     }
 
     reset(): void {
