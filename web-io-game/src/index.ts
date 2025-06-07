@@ -7,10 +7,3 @@ const gameEngine = new GameEngine();
 
 server.start();
 gameEngine.start();
-
-function gameLoop() {
-    gameEngine.update();
-    requestAnimationFrame(gameLoop);
-}
-
-gameLoop();
