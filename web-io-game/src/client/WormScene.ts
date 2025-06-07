@@ -1,59 +1,78 @@
-// src/client/WormScene.ts
 import Phaser from "phaser";
 
 export default class WormScene extends Phaser.Scene {
     private segments!: Phaser.GameObjects.Arc[];
 
-    /** 머리가 마우스를 쫓는 속도(px/s) */
-    private readonly headSpeed = 350;
-    /** 세그먼트 간 고정 거리(px) */
-    private readonly segmentSpacing = 18;
-    /** 세그먼트(원) 개수 */
-    private readonly segmentCount = 25;
+    private readonly headSpeed = 350; // 머리가 전진하는 속도
+    private readonly segmentSpacing = 18; // 각 세그먼트 간격
+    private readonly segmentCount = 25; // 세그먼트 개수
+
+    private lastVel = new Phaser.Math.Vector2(0, 0); // 초기 속도는 0
+    private prevPointer = new Phaser.Math.Vector2();
 
     create() {
         const {width, height} = this.scale;
 
-        // ① 지렁이 몸통(원)들 만들기
         this.segments = [];
         for (let i = 0; i < this.segmentCount; i++) {
-            const c = this.add.circle(
-                width / 2,
-                height / 2 + i * this.segmentSpacing,
-                10,
-                0xaaff66
+            this.segments.push(
+                this.add.circle(
+                    width / 2,
+                    height / 2 + i * this.segmentSpacing,
+                    10,
+                    0xaaff66
+                )
             );
-            this.segments.push(c);
         }
 
-        // ② 창 크기 바뀌면, 몸통을 화면 중앙 기준으로 다시 정렬(선택)
-        this.scale.on("resize", ({width, height}: Phaser.Structs.Size) => {
-            const dx = width / 2 - this.segments[0].x;
-            const dy = height / 2 - this.segments[0].y;
-            this.segments.forEach(s => {
-                s.x += dx;
-                s.y += dy;
-            });
-        });
+        // 포인터 초기 좌표 기억
+        this.prevPointer.set(this.input.activePointer.worldX, this.input.activePointer.worldY);
+        let targetVel = new Phaser.Math.Vector2();
+        const pointer = this.input.activePointer;
+        const head = this.segments[0];
+        targetVel
+            .set(pointer.worldX - head.x, pointer.worldY - head.y)
+            .normalize();
+        this.lastVel.copy(targetVel);
     }
 
-    update(_: number, delta: number) {
-        /** ---------- 1) 머리(0번 세그먼트)가 마우스를 추적 ---------- */
+    update(_t: number, deltaMs: number) {
+        const dt = deltaMs / 1000;
+        const pointer = this.input.activePointer;
         const head = this.segments[0];
-        const p = this.input.activePointer;
 
-        const dxHead = p.worldX - head.x;
-        const dyHead = p.worldY - head.y;
-        const distHead = Math.hypot(dxHead, dyHead);
+        /* ---------- 1) 머리 움직임 ---------- */
+        // 포인터가 얼마나 이동했는지 검사
+        const movedX = pointer.worldX - this.prevPointer.x;
+        const movedY = pointer.worldY - this.prevPointer.y;
+        const movedDistSq = movedX * movedX + movedY * movedY;
 
-        if (distHead > 1) {
-            const maxMove = (this.headSpeed * delta) / 1000;
-            const t = Math.min(1, maxMove / distHead); // 한 프레임 이동 한계
-            head.x += dxHead * t;
-            head.y += dyHead * t;
+        const epsilonSq = 1; // 움직임이 1px² 이하면 '정지' 간주
+        let targetVel = new Phaser.Math.Vector2();
+
+        if (movedDistSq > epsilonSq) {
+            /** ★ 변경 포인트
+             *   포인터가 움직였다면:
+             *   → '머리 → 포인터' 방향으로 선회
+             */
+            targetVel
+                .set(pointer.worldX - head.x, pointer.worldY - head.y)
+                .normalize();
+
+            this.lastVel.copy(targetVel);      // 향후 정지 상태용
+        } else {
+            // 포인터가 멈춤 → 마지막 방향으로 직진
+            targetVel.copy(this.lastVel);
         }
 
-        /** ---------- 2) 나머지 세그먼트가 ‘앞 세그먼트’를 따라감 ---------- */
+        // 머리 전진
+        head.x += targetVel.x * this.headSpeed * dt;
+        head.y += targetVel.y * this.headSpeed * dt;
+
+        // 포인터 좌표 기록
+        this.prevPointer.set(pointer.worldX, pointer.worldY);
+
+        /* ---------- 2) 몸통 ~ 꼬리 세그먼트 ---------- */
         for (let i = 1; i < this.segments.length; i++) {
             const prev = this.segments[i - 1];
             const curr = this.segments[i];
@@ -62,10 +81,9 @@ export default class WormScene extends Phaser.Scene {
             const dy = prev.y - curr.y;
             const dist = Math.hypot(dx, dy);
 
-            // 앞놈과 일정 간격보다 멀어지면 그 거리만큼 당겨옴
             if (dist > this.segmentSpacing) {
-                const move = dist - this.segmentSpacing;      // 초과 거리
-                const ratio = move / dist;                    // 이동 비율
+                const move = dist - this.segmentSpacing;
+                const ratio = move / dist;
                 curr.x += dx * ratio;
                 curr.y += dy * ratio;
             }
