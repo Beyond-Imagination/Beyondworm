@@ -6,6 +6,7 @@ export const GAME_CONSTANTS = {
     // Segment
     SEGMENT_SPACING: 18, // 세그먼트 간 고정 거리(px)
     SEGMENT_DEFAULT_COUNT: 5, // 기본 세그먼트(원) 개수
+    SEGMENT_MAX_COUNT: 25, // 최대 세그먼트(원) 개수
     SEGMENT_RADIUS: 40, // 세그먼트(원) 반지름(px)
     HEAD_SPEED: 350, // 머리가 마우스를 쫓는 속도(px/s)
 
