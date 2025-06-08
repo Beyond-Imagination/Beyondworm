@@ -96,14 +96,8 @@ export default class GameScene extends Phaser.Scene {
             ptr.worldY - head.y
         ).normalize();                     // 머리→포인터 방향
 
-        const movedSq =
-            (ptr.worldX - this.prevPtr.x) ** 2 +
-            (ptr.worldY - this.prevPtr.y) ** 2;
-
-        if (movedSq > 4) {
-            // 포인터가 실제로 움직였다면 → 방향 보간
-            this.lastVel.lerp(desired, this.turnLerp).normalize();
-        }
+        // 포인터가 실제로 움직였다면 → 방향 보간
+        this.lastVel.lerp(desired, this.turnLerp).normalize();
         // 포인터 정지 시 lastVel 유지 → 관성
 
         /* ── B. 머리 이동 & 경로 샘플링 ─────────────── */
