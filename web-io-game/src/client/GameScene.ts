@@ -26,10 +26,6 @@ class TrackPlayerMovementStrategy implements MovementStrategy {
 // 먹이 탐색 봇 움직임 전략
 class SeekFoodMovementStrategy implements MovementStrategy {
     calculateDesiredDirection(wormState: WormState, scene: GameScene): Phaser.Math.Vector2 {
-        if (wormState.nextTarget?.active) {
-            // 이미 목표가 설정되어 있다면 그 방향으로 이동
-            return wormState.calculateDesiredDirection();
-        }
         const head = wormState.segments[0];
         if (!head) return Phaser.Math.Vector2.ZERO;
 
