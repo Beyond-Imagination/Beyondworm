@@ -43,7 +43,7 @@ class SeekFoodMovementStrategy implements MovementStrategy {
 
         let closestFood: Food | null = null;
         let minDistanceSq = Infinity;
-        const activeFoods = (scene as any).foods.filter((f: Food) => f.sprite.active); // GameScene의 foods에 접근
+        const activeFoods = scene.foods.filter((f: Food) => f.sprite.active); // GameScene의 foods에 접근
 
         if (activeFoods.length > 0) {
             for (const food of activeFoods) {
@@ -104,7 +104,7 @@ export default class GameScene extends Phaser.Scene {
     private playerState: WormState = new WormState(0xaaff66, new PlayerMovementStrategy());
     private playerTrackerBotState: WormState = new WormState(0xff6666, new TrackPlayerMovementStrategy());
     private foodSeekerBotState: WormState = new WormState(0x6666ff, new SeekFoodMovementStrategy());
-    private worms = {
+    private worms: Record<WormType, WormState> = {
         "player": this.playerState,
         "playerTrackerBot": this.playerTrackerBotState,
         "foodSeekerBot": this.foodSeekerBotState
@@ -241,7 +241,6 @@ export default class GameScene extends Phaser.Scene {
 
         // 새 세그먼트에 physics body 부여
         this.physics.add.existing(newSegment, false);
-        //newSegment.body.setCircle(GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS);
 
         targetSegments.push(newSegment); // 해당 wormState의 segments에 추가
 
