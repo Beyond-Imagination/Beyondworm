@@ -244,8 +244,6 @@ export default class GameScene extends Phaser.Scene {
         if (!this.playerState.segments || this.playerState.segments.length === 0) return;
         // 화면에 항상 같은 비율로 보이도록 zoom 계산
         // (세그먼트 반지름이 커져도 화면에서는 항상 같은 비율로 보이게 함)
-        // 화면에 항상 같은 비율로 보이도록 zoom 계산
-        // (세그먼트 반지름이 커져도 화면에서는 항상 같은 비율로 보이게 함)
         const baseRadius = GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS;
         const currentRadius = this.playerState.segments[0].radius; // 플레이어 기준
         const baseZoom = 1;
