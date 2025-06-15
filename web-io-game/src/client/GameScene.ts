@@ -2,6 +2,73 @@ import Phaser from "phaser";
 import Food from "./Food";
 import {GAME_CONSTANTS} from "./constants";
 
+//  움직임 전략 인터페이스
+interface MovementStrategy {
+    calculateDesiredDirection(wormState: WormState, scene: GameScene, playerHead?: Phaser.GameObjects.Arc): Phaser.Math.Vector2;
+}
+
+// 플레이어 움직임 전략
+class PlayerMovementStrategy implements MovementStrategy {
+    calculateDesiredDirection(wormState: WormState, scene: GameScene): Phaser.Math.Vector2 {
+        const ptr = scene.input.activePointer;
+        const head = wormState.segments[0];
+
+        const desiredDir = new Phaser.Math.Vector2(
+            ptr.worldX - head.x,
+            ptr.worldY - head.y
+        );
+        return desiredDir.length() > 0 ? desiredDir.normalize() : Phaser.Math.Vector2.ZERO;
+    }
+}
+
+// 플레이어 추적 봇 움직임 전략
+class TrackPlayerMovementStrategy implements MovementStrategy {
+    calculateDesiredDirection(wormState: WormState, scene: GameScene, playerHead?: Phaser.GameObjects.Arc): Phaser.Math.Vector2 {
+        const head = wormState.segments[0];
+        if (!head || !playerHead) return Phaser.Math.Vector2.ZERO;
+
+        const desiredDir = new Phaser.Math.Vector2(
+            playerHead.x - head.x,
+            playerHead.y - head.y
+        );
+        return desiredDir.length() > 0 ? desiredDir.normalize() : Phaser.Math.Vector2.ZERO;
+    }
+}
+
+// 먹이 탐색 봇 움직임 전략
+class SeekFoodMovementStrategy implements MovementStrategy {
+    calculateDesiredDirection(wormState: WormState, scene: GameScene): Phaser.Math.Vector2 {
+        const head = wormState.segments[0];
+        if (!head) return Phaser.Math.Vector2.ZERO;
+
+        let closestFood: Food | null = null;
+        let minDistanceSq = Infinity;
+        const activeFoods = (scene as any).foods.filter((f: Food) => f.sprite.active); // GameScene의 foods에 접근
+
+        if (activeFoods.length > 0) {
+            for (const food of activeFoods) {
+                const distSq = Phaser.Math.Distance.Squared(head.x, head.y, food.sprite.x, food.sprite.y);
+                if (distSq < minDistanceSq) {
+                    minDistanceSq = distSq;
+                    closestFood = food;
+                }
+            }
+        }
+
+        if (closestFood) {
+            const desiredDir = new Phaser.Math.Vector2(
+                closestFood.sprite.x - head.x,
+                closestFood.sprite.y - head.y
+            );
+            return desiredDir.length() > 0 ? desiredDir.normalize() : Phaser.Math.Vector2.ZERO;
+        } else {
+            // 먹이가 없으면 마지막 방향 유지 시도
+            return wormState.lastVel.length() > 0 ? wormState.lastVel.clone().normalize() : new Phaser.Math.Vector2(0, 1);
+        }
+    }
+}
+
+
 // WormState 클래스 정의
 class WormState {
     public lastVel: Phaser.Math.Vector2;
@@ -10,14 +77,16 @@ class WormState {
     public segments: Phaser.GameObjects.Arc[];
     public path: Phaser.Math.Vector2[];
     public segmentColor: number;
+    public movementStrategy: MovementStrategy; // 움직임 전략 추가
 
-    constructor(segmentColor: number) {
-        this.lastVel = new Phaser.Math.Vector2(0, 1);
+    constructor(segmentColor: number, movementStrategy: MovementStrategy) {
+        this.lastVel = new Phaser.Math.Vector2(0, 1); // 초기 방향은 아래로
         this.lastHead = new Phaser.Math.Vector2();
         this.targetSegmentRadius = GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS;
         this.segments = [];
         this.path = [];
         this.segmentColor = segmentColor;
+        this.movementStrategy = movementStrategy; // 전략 할당
     }
 }
 
@@ -28,11 +97,13 @@ export default class GameScene extends Phaser.Scene {
         super({key: "GameScene"});
     }
 
-    private foods: Food[] = [];
+    // foods 속성을 public 또는 getter로 만들어 전략에서 접근 가능하게 하거나, calculateDesiredDirection에 전달해야 함.
+    // 여기서는 GameScene의 인스턴스를 전략에 넘겨주고, (scene as any).foods로 접근하는 방식을 사용.
+    public foods: Food[] = [];
 
-    private playerState: WormState = new WormState(0xaaff66);
-    private playerTrackerBotState: WormState = new WormState(0xff6666);
-    private foodSeekerBotState: WormState = new WormState(0x6666ff);
+    private playerState: WormState = new WormState(0xaaff66, new PlayerMovementStrategy());
+    private playerTrackerBotState: WormState = new WormState(0xff6666, new TrackPlayerMovementStrategy());
+    private foodSeekerBotState: WormState = new WormState(0x6666ff, new SeekFoodMovementStrategy());
     private worms = {
         "player": this.playerState,
         "playerTrackerBot": this.playerTrackerBotState,
@@ -42,7 +113,6 @@ export default class GameScene extends Phaser.Scene {
 
     /* ── 조정 파라미터 ───────────────────────────── */
     private readonly turnLerp = 0.15;  // 0~1, 클수록 민첩
-    private prevPtr = new Phaser.Math.Vector2();     // 이전 포인터 좌표
 
     preload() {
         // 에셋(이미지, 사운드 등) 로드
@@ -54,10 +124,13 @@ export default class GameScene extends Phaser.Scene {
 
         // ① 지렁이 몸통(원)들 만들기
         for (const wormState of Object.values(this.worms)) {
+            const initialX = Phaser.Math.Between(100, MapWidth - 100); // 랜덤 X 좌표
+            const initialY = Phaser.Math.Between(100, MapHeight - 100); // 랜덤 Y 좌표
+
             for (let i = 0; i < GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT; i++) {
                 const c = this.add.circle(
-                    MapWidth / 2,
-                    MapHeight / 2 + i * GAME_CONSTANTS.SEGMENT_SPACING,
+                    initialX, // 랜덤 시작 X
+                    initialY + i * GAME_CONSTANTS.SEGMENT_SPACING, // 랜덤 시작 Y 기준으로 세그먼트 배치
                     GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS,
                     wormState.segmentColor // 지렁이 색상
                 );
@@ -77,12 +150,6 @@ export default class GameScene extends Phaser.Scene {
         }
 
 
-        // ③ 포인터 초기 좌표 기억
-        this.prevPtr.set(
-            this.input.activePointer.worldX,
-            this.input.activePointer.worldY
-        );
-
         // ④ 먹이 여러 개 랜덤 위치에 소환
         this.updateFoods();
 
@@ -97,28 +164,22 @@ export default class GameScene extends Phaser.Scene {
 
     update(_: number, dms: number) {
         const dt = dms / 1000;
-        const ptr = this.input.activePointer;
-        const playerHead = this.playerState.segments[0];
+        const playerHead = this.playerState.segments[0]; // TrackPlayerMovementStrategy에 전달하기 위함
 
-        /* ── A. 플레이어 목표 방향 계산 ─────────────────── */
-        const desiredPlayerDir = new Phaser.Math.Vector2(
-            ptr.worldX - playerHead.x,
-            ptr.worldY - playerHead.y
-        );
-        if (desiredPlayerDir.length() > 0) {
-            desiredPlayerDir.normalize();
+        // 모든 지렁이 업데이트
+        for (const wormState of Object.values(this.worms)) {
+            const head = wormState.segments[0];
+
+            // 1. 목표 방향 계산 (전략 사용)
+            const desiredDir = wormState.movementStrategy.calculateDesiredDirection(wormState, this, playerHead);
+
+            // 2. 현재 속도(lastVel)를 목표 방향으로 점진적 변경
+            wormState.lastVel.lerp(desiredDir, this.turnLerp).normalize();
+
+            // 3. 지렁이 머리 이동 및 경로 샘플링 (updateWorm 호출)
+            this.updateWorm(dt, head, wormState, wormState.path, wormState.segments);
         }
 
-        this.playerState.lastVel.lerp(desiredPlayerDir, this.turnLerp).normalize();
-
-        /* ── B. 플레이어 머리 이동 & 경로 샘플링 ─────────── */
-        this.updateWorm(dt, playerHead, this.playerState, this.playerState.path, this.playerState.segments);
-
-        /* ── C. 봇 업데이트 ──────────────────────────── */
-        this.updateBots(dt, playerHead);
-
-        /* ── D. 상태 갱신 ──────────────────────────── */
-        this.prevPtr.set(ptr.worldX, ptr.worldY);
 
         for (const wormState of Object.values(this.worms)) {
             // 세그먼트 반지름을 부드럽게 보간
@@ -261,49 +322,6 @@ export default class GameScene extends Phaser.Scene {
                     path[idx].y
                 );
             }
-        }
-    }
-
-    // 봇 업데이트 메서드
-    private updateBots(dt: number, playerHead: Phaser.GameObjects.Arc) {
-        // 플레이어 추적 봇 업데이트
-        if (this.playerTrackerBotState.segments && this.playerTrackerBotState.segments.length > 0) { // playerTrackerBotState.segments 사용
-            const botHead = this.playerTrackerBotState.segments[0]; // playerTrackerBotState.segments 사용
-            const desiredDir = new Phaser.Math.Vector2(
-                playerHead.x - botHead.x,
-                playerHead.y - botHead.y
-            );
-            if (desiredDir.length() > 0) desiredDir.normalize();
-            this.playerTrackerBotState.lastVel.lerp(desiredDir, this.turnLerp * 0.8).normalize();
-            this.updateWorm(dt, botHead, this.playerTrackerBotState, this.playerTrackerBotState.path, this.playerTrackerBotState.segments);
-        }
-
-        // 먹이 탐색 봇 업데이트
-        if (this.foodSeekerBotState.segments && this.foodSeekerBotState.segments.length > 0) { // foodSeekerBotState.segments 사용
-            const botHead = this.foodSeekerBotState.segments[0]; // foodSeekerBotState.segments 사용
-            let closestFood: Food | null = null;
-            let minDistanceSq = Infinity;
-
-            const activeFoods = this.foods.filter(f => f.sprite.active);
-            if (activeFoods.length > 0) {
-                for (const food of activeFoods) {
-                    const distSq = Phaser.Math.Distance.Squared(botHead.x, botHead.y, food.sprite.x, food.sprite.y);
-                    if (distSq < minDistanceSq) {
-                        minDistanceSq = distSq;
-                        closestFood = food;
-                    }
-                }
-            }
-
-            if (closestFood) {
-                const desiredDir = new Phaser.Math.Vector2(
-                    closestFood.sprite.x - botHead.x,
-                    closestFood.sprite.y - botHead.y
-                );
-                if (desiredDir.length() > 0) desiredDir.normalize();
-                this.foodSeekerBotState.lastVel.lerp(desiredDir, this.turnLerp * 0.9).normalize();
-            }
-            this.updateWorm(dt, botHead, this.foodSeekerBotState, this.foodSeekerBotState.path, this.foodSeekerBotState.segments);
         }
     }
 
