@@ -26,19 +26,7 @@ export class WormState {
         this.nextTarget = null; // 초기에는 목표 없음
         this.boundBox = { minX: 0, maxX: 0, minY: 0, maxY: 0 }; // 바운드 박스 초기화
     }
-
-    reset() {
-        this.lastVel.set(0, 1); // 초기 방향으로 재설정
-        this.lastHead.set(0, 0); // 머리 위치 초기화
-        this.targetSegmentRadius = GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS; // 목표 반지름 초기화
-        this.segments = []; // 세그먼트 배열 초기화
-        this.path = []; // 경로도 초기화
-        this.segmentColor = 0xaaff66; // 기본 색상으로 재설정
-        this.movementStrategy = new PlayerMovementStrategy(); // 기본 전략으로 재설정
-        this.nextTarget = null; // 다음 목표 초기화
-        this.boundBox = { minX: 0, maxX: 0, minY: 0, maxY: 0 }; // 바운드 박스 초기화
-    }
-
+    
     calculateDesiredDirection() {
         const head = this.segments[0];
         const desiredDir = new Phaser.Math.Vector2(

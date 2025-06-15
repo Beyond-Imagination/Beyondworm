@@ -3,24 +3,21 @@ import Food from "./Food";
 import { GAME_CONSTANTS } from "./constants";
 import { MovementStrategy, PlayerMovementStrategy, TrackPlayerMovementStrategy, SeekFoodMovementStrategy } from "./MovementStrategy";
 import { WormState, WormType } from "./WormState";
+import WormSpawner from "./WormSpawner";
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
         super({ key: "GameScene" });
     }
 
+    public wormSpawner = new WormSpawner();
+
     // foods 속성을 public 또는 getter로 만들어 전략에서 접근 가능하게 하거나, calculateDesiredDirection에 전달해야 함.
     // 여기서는 GameScene의 인스턴스를 전략에 넘겨주고, (scene as any).foods로 접근하는 방식을 사용.
     public foods: Food[] = [];
 
-    public playerState: WormState = new WormState(0xaaff66, new PlayerMovementStrategy());
-    private playerTrackerBotState: WormState = new WormState(0xff6666, new TrackPlayerMovementStrategy());
-    private foodSeekerBotState: WormState = new WormState(0x6666ff, new SeekFoodMovementStrategy());
-    private worms: Record<WormType, WormState> = {
-        "player": this.playerState,
-        "playerTrackerBot": this.playerTrackerBotState,
-        "foodSeekerBot": this.foodSeekerBotState
-    };
+    public playerState!: WormState;
+    public worms!: Record<WormType, WormState>;
 
 
     /* ── 조정 파라미터 ───────────────────────────── */
@@ -34,44 +31,21 @@ export default class GameScene extends Phaser.Scene {
         const MapWidth = GAME_CONSTANTS.MAP_WIDTH;
         const MapHeight = GAME_CONSTANTS.MAP_HEIGHT;
 
-        // ① 지렁이 몸통(원)들 만들기
-        for (const wormState of Object.values(this.worms)) {
-            const initialX = Phaser.Math.Between(100, MapWidth - 100); // 랜덤 X 좌표
-            const initialY = Phaser.Math.Between(100, MapHeight - 100); // 랜덤 Y 좌표
+        // ① 기본 지렁이 생성 (스포너에서 꺼내서 사용)
+        this.playerState = this.wormSpawner.SpawnWorm(this, "player", Phaser.Math.Between(100, MapWidth - 100), Phaser.Math.Between(100, MapHeight - 100));
+        this.worms = {
+            "player": this.playerState,
+            "playerTrackerBot": this.wormSpawner.SpawnWorm(this, "playerTrackerBot", Phaser.Math.Between(100, MapWidth - 100), Phaser.Math.Between(100, MapHeight - 100)),
+            "foodSeekerBot": this.wormSpawner.SpawnWorm(this, "foodSeekerBot", Phaser.Math.Between(100, MapWidth - 100), Phaser.Math.Between(100, MapHeight - 100))
+        };
 
-            for (let i = 0; i < GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT; i++) {
-                const c = this.add.circle(
-                    initialX, // 랜덤 시작 X
-                    initialY + i * GAME_CONSTANTS.SEGMENT_SPACING, // 랜덤 시작 Y 기준으로 세그먼트 배치
-                    GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS,
-                    wormState.segmentColor // 지렁이 색상
-                );
-                c.setStrokeStyle(4, 0x333333); // 외곽선 두께 4, 색상 어두운 회색
-                c.setDepth(GAME_CONSTANTS.ZORDER_SEGMENT - i); // 세그먼트의 Z-순서 설정
-                wormState.segments.push(c);
-                this.physics.add.existing(c, false); // Arcade Physics 적용
-                c.body.setCircle(GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS); // 충돌 판정을 위한 hitArea를 원으로 설정
-            }
-
-            wormState.lastHead.set(wormState.segments[0].x, wormState.segments[0].y);
-            for (let i = 0; i < GAME_CONSTANTS.SEGMENT_SPACING * GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT; i++) {
-                wormState.path.push(
-                    new Phaser.Math.Vector2(wormState.lastHead.x, wormState.lastHead.y + i)
-                );
-            }
-        }
-
-        // 플레이어를 추적하는 봇의 목표를 플레이어 머리로 설정
-        this.playerTrackerBotState.nextTarget = this.playerState.segments[0]; // 플레이어 추적 봇의 목표는 항상 플레이어 머리
-
-
-        // ④ 먹이 여러 개 랜덤 위치에 소환
+        // ② 먹이 여러 개 랜덤 위치에 소환
         this.updateFoods();
 
-        // ⑤ 카메라 설정
-        this.setupCamera(this.playerState.segments[0], MapWidth, MapHeight);
+        // ③ 플레이어 Front 초기화
+        this.InitializePlayer();
 
-        // UIScene이 실행 중이 아니면 실행
+        // ④ UIScene이 실행 중이 아니면 실행
         if (!this.scene.isActive("UIScene")) {
             this.scene.launch("UIScene");
         }
@@ -116,6 +90,17 @@ export default class GameScene extends Phaser.Scene {
 
     shutdown() {
         // Scene이 종료될 때 호출
+    }
+
+    /**
+     * 메인 플레이어 Front 초기화
+     * - 카메라 설정 등
+     */
+    private InitializePlayer() {
+        this.playerState = this.worms["player"];
+
+        // camera setting
+        this.setupCamera(this.playerState.segments[0], GAME_CONSTANTS.MAP_WIDTH, GAME_CONSTANTS.MAP_HEIGHT);
     }
 
     /**
@@ -174,7 +159,7 @@ export default class GameScene extends Phaser.Scene {
             const food = new Food(this, x, y, GAME_CONSTANTS.FOOD_RADIUS, 0xff3333);
             this.foods.push(food);
 
-
+            // 새로 생성된 먹이에 대해 모든 지렁이의 머리와 충돌 처리 추가
             for (const key of Object.keys(this.worms)) {
                 const worm = this.worms[key as WormType];
                 // 각 지렁이의 segments를 확인하여 먹이와 충돌 설정
@@ -259,56 +244,42 @@ export default class GameScene extends Phaser.Scene {
             segment.destroy();
         }
 
-        // 상태 초기화
-        wormState.reset();
+        // 스포너에 반환
+        this.wormSpawner.ReleaseWorm(wormType, wormState);
 
-        // worms에서 제거
+        // worms에서 제거 후 새로 스폰
         delete this.worms[wormType];
+        this.worms[wormType] = this.wormSpawner.SpawnWorm(
+            this,
+            wormType,
+            Phaser.Math.Between(100, GAME_CONSTANTS.MAP_WIDTH - 100),
+            Phaser.Math.Between(100, GAME_CONSTANTS.MAP_HEIGHT - 100)
+        );
 
-        // 유저인 경우 게임 종료
-        if (wormType === "player") {
-            this.scene.stop("UIScene"); // UI 씬 중지
-            //this.scene.start("GameOverScene"); // 게임 오버 씬 시작
-            return;
-        }
-
-        // TODO: Spawner를 만들어서 처리할 것
-        // 먹이 탐색 봇과 플레이어 추적 봇은 재생성
-        if (wormType === "playerTrackerBot" || wormType === "foodSeekerBot") {
-            const newWormState = new WormState(
-                wormType === "playerTrackerBot" ? 0xff6666 : 0x6666ff,
-                wormType === "playerTrackerBot" ? new TrackPlayerMovementStrategy() : new SeekFoodMovementStrategy()
+        // 기존의 먹이들을 대상으로 충돌처리 추가
+        for (const food of this.foods) {
+            this.physics.add.overlap(
+                this.worms[wormType].segments[0], // 새로 생성된 머리
+                food.sprite, // 먹이
+                (head: Phaser.GameObjects.Arc, foodSprite: Phaser.GameObjects.Arc) => {
+                    this.biteFood(foodSprite, wormType);
+                }
             );
-            this.worms[wormType] = newWormState;
-
-            // 새 세그먼트 생성
-            const initialX = Phaser.Math.Between(100, GAME_CONSTANTS.MAP_WIDTH - 100);
-            const initialY = Phaser.Math.Between(100, GAME_CONSTANTS.MAP_HEIGHT - 100);
-            for (let i = 0; i < GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT; i++) {
-                const c = this.add.circle(
-                    initialX,
-                    initialY + i * GAME_CONSTANTS.SEGMENT_SPACING,
-                    GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS,
-                    newWormState.segmentColor
-                );
-                c.setStrokeStyle(4, 0x333333);
-                c.setDepth(GAME_CONSTANTS.ZORDER_SEGMENT - i);
-                newWormState.segments.push(c);
-                this.physics.add.existing(c, false);
-                c.body.setCircle(GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS);
-            }
-
-            // 기존의 먹이들을 대상으로 충돌처리 추가
-            for (const food of this.foods) {
-                this.physics.add.overlap(
-                    newWormState.segments[0], // 새로 생성된 머리
-                    food.sprite, // 먹이
-                    (head: Phaser.GameObjects.Arc, foodSprite: Phaser.GameObjects.Arc) => {
-                        this.biteFood(foodSprite, wormType);
-                    }
-                );
-            }
         }
+
+        if (wormType === "player") {
+            this.InitializePlayer();
+
+            this.worms["playerTrackerBot"].nextTarget = null; // 플레이어가 죽었으므로 추적 봇의 목표를 초기화
+        }
+
+        // // 유저인 경우 게임 종료
+        // if (wormType === "player") {
+        //     this.scene.stop("UIScene"); // UI 씬 중지
+        //     //this.scene.start("GameOverScene"); // 게임 오버 씬 시작
+        // }
+
+        return;
     }
 
     /**
