@@ -1,10 +1,11 @@
 import Phaser from "phaser";
+import {GAME_CONSTANTS} from "./constants";
 
 export default class UIScene extends Phaser.Scene {
     private foodText!: Phaser.GameObjects.Text;
 
     constructor() {
-        super({ key: "UIScene" });
+        super({key: "UIScene"});
     }
 
     preload() {
@@ -17,7 +18,7 @@ export default class UIScene extends Phaser.Scene {
             this.scale.width - 40,
             20,
             "🍎 0",
-            { font: "32px Arial", color: "#fff", fontStyle: "bold" }
+            {font: "32px Arial", color: "#fff", fontStyle: "bold"}
         )
             .setOrigin(1, 0)
             .setStroke("#222", 6)
@@ -35,10 +36,10 @@ export default class UIScene extends Phaser.Scene {
     update() {
         // GameScene의 인스턴스 가져오기
         const gameScene = this.scene.get("GameScene") as any;
-        if (gameScene && typeof gameScene.segments === "object") {
+        if (gameScene && typeof gameScene.playerState.segments === "object") {
             // 먹은 먹이 수 = 현재 세그먼트 개수 - 기본 세그먼트 개수
-            const defaultCount = gameScene.constructor.GAME_CONSTANTS?.SEGMENT_DEFAULT_COUNT ?? 0;
-            const eatenCount = (gameScene.segments?.length ?? 0) - defaultCount;
+            const defaultCount = GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT ?? 0;
+            const eatenCount = (gameScene.playerState.segments?.length ?? 0) - defaultCount;
             this.foodText.setText(`🍎 ${eatenCount}`);
         }
     }
