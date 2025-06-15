@@ -1,7 +1,6 @@
 import Phaser from "phaser";
 import Food from "./Food";
 import { GAME_CONSTANTS } from "./constants";
-import { MovementStrategy, PlayerMovementStrategy, TrackPlayerMovementStrategy, SeekFoodMovementStrategy } from "./MovementStrategy";
 import { WormState, WormType } from "./WormState";
 import WormSpawner from "./WormSpawner";
 

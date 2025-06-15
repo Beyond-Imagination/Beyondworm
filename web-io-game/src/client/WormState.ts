@@ -1,5 +1,5 @@
 import { GAME_CONSTANTS } from "./constants";
-import { MovementStrategy, PlayerMovementStrategy } from "./MovementStrategy";
+import { MovementStrategy } from "./MovementStrategy";
 
 export type WormType = "player" | "playerTrackerBot" | "foodSeekerBot";
 
@@ -26,7 +26,7 @@ export class WormState {
         this.nextTarget = null; // 초기에는 목표 없음
         this.boundBox = { minX: 0, maxX: 0, minY: 0, maxY: 0 }; // 바운드 박스 초기화
     }
-    
+
     calculateDesiredDirection() {
         const head = this.segments[0];
         const desiredDir = new Phaser.Math.Vector2(
