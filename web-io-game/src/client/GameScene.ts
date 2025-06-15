@@ -1,11 +1,8 @@
 import Phaser from "phaser";
 import Food from "./Food";
 import {GAME_CONSTANTS} from "./constants";
-
-//  움직임 전략 인터페이스
-interface MovementStrategy {
-    calculateDesiredDirection(wormState: WormState, scene: GameScene, playerHead?: Phaser.GameObjects.Arc): Phaser.Math.Vector2;
-}
+import {MovementStrategy} from "./MovementStrategy";
+import {WormState} from "./WormState";
 
 // 플레이어 움직임 전략
 class PlayerMovementStrategy implements MovementStrategy {
@@ -23,13 +20,13 @@ class PlayerMovementStrategy implements MovementStrategy {
 
 // 플레이어 추적 봇 움직임 전략
 class TrackPlayerMovementStrategy implements MovementStrategy {
-    calculateDesiredDirection(wormState: WormState, scene: GameScene, playerHead?: Phaser.GameObjects.Arc): Phaser.Math.Vector2 {
+    calculateDesiredDirection(wormState: WormState, scene: GameScene, targetObject?: Phaser.GameObjects.Arc): Phaser.Math.Vector2 {
         const head = wormState.segments[0];
-        if (!head || !playerHead) return Phaser.Math.Vector2.ZERO;
+        if (!head || !targetObject) return Phaser.Math.Vector2.ZERO;
 
         const desiredDir = new Phaser.Math.Vector2(
-            playerHead.x - head.x,
-            playerHead.y - head.y
+            targetObject.x - head.x,
+            targetObject.y - head.y
         );
         return desiredDir.length() > 0 ? desiredDir.normalize() : Phaser.Math.Vector2.ZERO;
     }
@@ -69,27 +66,6 @@ class SeekFoodMovementStrategy implements MovementStrategy {
 }
 
 
-// WormState 클래스 정의
-class WormState {
-    public lastVel: Phaser.Math.Vector2;
-    public lastHead: Phaser.Math.Vector2;
-    public targetSegmentRadius: number;
-    public segments: Phaser.GameObjects.Arc[];
-    public path: Phaser.Math.Vector2[];
-    public segmentColor: number;
-    public movementStrategy: MovementStrategy; // 움직임 전략 추가
-
-    constructor(segmentColor: number, movementStrategy: MovementStrategy) {
-        this.lastVel = new Phaser.Math.Vector2(0, 1); // 초기 방향은 아래로
-        this.lastHead = new Phaser.Math.Vector2();
-        this.targetSegmentRadius = GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS;
-        this.segments = [];
-        this.path = [];
-        this.segmentColor = segmentColor;
-        this.movementStrategy = movementStrategy; // 전략 할당
-    }
-}
-
 type WormType = "player" | "playerTrackerBot" | "foodSeekerBot";
 
 export default class GameScene extends Phaser.Scene {
@@ -101,9 +77,9 @@ export default class GameScene extends Phaser.Scene {
     // 여기서는 GameScene의 인스턴스를 전략에 넘겨주고, (scene as any).foods로 접근하는 방식을 사용.
     public foods: Food[] = [];
 
-    private playerState: WormState = new WormState(0xaaff66, new PlayerMovementStrategy());
-    private playerTrackerBotState: WormState = new WormState(0xff6666, new TrackPlayerMovementStrategy());
-    private foodSeekerBotState: WormState = new WormState(0x6666ff, new SeekFoodMovementStrategy());
+    public playerState: WormState = new WormState(0xaaff66, 0, new PlayerMovementStrategy());
+    private playerTrackerBotState: WormState = new WormState(0xff6666, 500, new TrackPlayerMovementStrategy());
+    private foodSeekerBotState: WormState = new WormState(0x6666ff, 1000, new SeekFoodMovementStrategy());
     private worms: Record<WormType, WormState> = {
         "player": this.playerState,
         "playerTrackerBot": this.playerTrackerBotState,
@@ -135,7 +111,7 @@ export default class GameScene extends Phaser.Scene {
                     wormState.segmentColor // 지렁이 색상
                 );
                 c.setStrokeStyle(4, 0x333333); // 외곽선 두께 4, 색상 어두운 회색
-                c.setDepth(GAME_CONSTANTS.ZORDER_SEGMENT - i); // 세그먼트의 Z-순서 설정
+                c.setDepth(GAME_CONSTANTS.ZORDER_SEGMENT - wormState.zOrderOffset - i); // 세그먼트의 Z-순서 설정
                 wormState.segments.push(c);
                 this.physics.add.existing(c, false); // Arcade Physics 적용
                 c.body.setCircle(GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS); // 충돌 판정을 위한 hitArea를 원으로 설정
@@ -237,7 +213,7 @@ export default class GameScene extends Phaser.Scene {
             targetWormState.segmentColor
         );
         newSegment.setStrokeStyle(4, 0x333333);
-        newSegment.setDepth(GAME_CONSTANTS.ZORDER_SEGMENT - targetSegments.length);
+        newSegment.setDepth(GAME_CONSTANTS.ZORDER_SEGMENT - targetWormState.zOrderOffset - targetSegments.length);
 
         // 새 세그먼트에 physics body 부여
         this.physics.add.existing(newSegment, false);
@@ -276,6 +252,10 @@ export default class GameScene extends Phaser.Scene {
 
     private updateCamera() {
         if (!this.playerState.segments || this.playerState.segments.length === 0) return;
+        // 화면에 항상 같은 비율로 보이도록 zoom 계산
+        // (세그먼트 반지름이 커져도 화면에서는 항상 같은 비율로 보이게 함)
+        // 화면에 항상 같은 비율로 보이도록 zoom 계산
+        // (세그먼트 반지름이 커져도 화면에서는 항상 같은 비율로 보이게 함)
         const baseRadius = GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS;
         const currentRadius = this.playerState.segments[0].radius; // 플레이어 기준
         const baseZoom = 1;
