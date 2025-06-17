@@ -47,7 +47,7 @@ export default class WormSpawner {
     /**
      * WormType에 따라 WormState를 큐에서 꺼내 재사용하거나, 없으면 새로 생성합니다.
      */
-    public SpawnWorm(scene: GameScene, type: WormType, x: number, y: number): WormState {
+    public spawnWorm(scene: GameScene, type: WormType, x: number, y: number): WormState {
         let wormState = this.wormQueues[type].shift();
         if (!wormState) {
             wormState = this.createDefaultWorm(type);
@@ -87,7 +87,7 @@ export default class WormSpawner {
     /**
      * 사용이 끝난 wormState를 다시 큐에 반환
      */
-    public ReleaseWorm(type: WormType, worm: WormState) {
+    public releaseWorm(type: WormType, worm: WormState) {
         // 세그먼트(Phaser 오브젝트) 정리
         for (const segment of worm.segments) {
             segment.destroy();

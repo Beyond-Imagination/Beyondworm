@@ -31,11 +31,11 @@ export default class GameScene extends Phaser.Scene {
         const MapHeight = GAME_CONSTANTS.MAP_HEIGHT;
 
         // ① 기본 지렁이 생성 (스포너에서 꺼내서 사용)
-        this.playerState = this.wormSpawner.SpawnWorm(this, "player", Phaser.Math.Between(100, MapWidth - 100), Phaser.Math.Between(100, MapHeight - 100));
+        this.playerState = this.wormSpawner.spawnWorm(this, "player", Phaser.Math.Between(100, MapWidth - 100), Phaser.Math.Between(100, MapHeight - 100));
         this.worms = {
             "player": this.playerState,
-            "playerTrackerBot": this.wormSpawner.SpawnWorm(this, "playerTrackerBot", Phaser.Math.Between(100, MapWidth - 100), Phaser.Math.Between(100, MapHeight - 100)),
-            "foodSeekerBot": this.wormSpawner.SpawnWorm(this, "foodSeekerBot", Phaser.Math.Between(100, MapWidth - 100), Phaser.Math.Between(100, MapHeight - 100))
+            "playerTrackerBot": this.wormSpawner.spawnWorm(this, "playerTrackerBot", Phaser.Math.Between(100, MapWidth - 100), Phaser.Math.Between(100, MapHeight - 100)),
+            "foodSeekerBot": this.wormSpawner.spawnWorm(this, "foodSeekerBot", Phaser.Math.Between(100, MapWidth - 100), Phaser.Math.Between(100, MapHeight - 100))
         };
 
         // ② 먹이 여러 개 랜덤 위치에 소환
@@ -244,11 +244,11 @@ export default class GameScene extends Phaser.Scene {
         }
 
         // 스포너에 반환
-        this.wormSpawner.ReleaseWorm(wormType, wormState);
+        this.wormSpawner.releaseWorm(wormType, wormState);
 
         // worms에서 제거 후 새로 스폰
         delete this.worms[wormType];
-        this.worms[wormType] = this.wormSpawner.SpawnWorm(
+        this.worms[wormType] = this.wormSpawner.spawnWorm(
             this,
             wormType,
             Phaser.Math.Between(100, GAME_CONSTANTS.MAP_WIDTH - 100),
@@ -328,7 +328,6 @@ export default class GameScene extends Phaser.Scene {
      * 두 벌레의 충돌(죽음) 판정 함수
      * @param inTargetWorm 충돌을 검사할 벌레(A, 머리 기준)
      * @param inOtherworm 충돌 대상 벌레(B, 몸통 기준)
-     * @param killWorm 죽은 벌레를 처리하는 함수 (wormA가 죽을 때 호출)
      */
     private checkWormCollision(inTargetWorm: WormState, inOtherworm: WormState): boolean {
 
