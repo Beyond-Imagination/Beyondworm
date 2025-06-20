@@ -1,0 +1,27 @@
+name: Deploy Beyondworm to GitHub Pages
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Main기준으로 코드 가져오기
+        uses: actions/checkout@v4
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: 의존성 설치
+        run: npm ci
+        working-directory: web-io-game
+      - name: 빌드
+        run: npx vite build --outDir dist
+        working-directory: web-io-game
+      - name: 깃헙 페이지로 정적파일 배포
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./FE/dist
+          publish_branch: gh-pages
