@@ -71,7 +71,9 @@ export default class WormSpawner {
             c.setDepth(GAME_CONSTANTS.ZORDER_SEGMENT - i);
             wormState.segments.push(c);
             scene.physics.add.existing(c, false);
-            c.body.setCircle(GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS);
+            if (c.body) {
+                (c.body as Phaser.Physics.Arcade.Body).setCircle(GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS);
+            }
         }
 
         wormState.lastHead.set(wormState.segments[0].x, wormState.segments[0].y);

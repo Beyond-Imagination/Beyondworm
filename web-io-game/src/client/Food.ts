@@ -15,7 +15,12 @@ export default class Food {
         scene.physics.add.existing(this.sprite, false);
 
         // 충돌 판정용 hitArea를 원으로 지정
-        this.sprite.body.setCircle(radius);
+        const body = this.sprite.body;
+        if (body instanceof Phaser.Physics.Arcade.Body) {
+            body.setCircle(radius);
+            // Center the circle body on the sprite
+            body.setOffset(-radius + this.sprite.width / 2, -radius + this.sprite.height / 2);
+        }
     }
 
     move(dx: number, dy: number) {

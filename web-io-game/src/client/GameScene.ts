@@ -73,7 +73,9 @@ export default class GameScene extends Phaser.Scene {
             for (const seg of wormState.segments) {
                 const newRadius = Phaser.Math.Linear(seg.radius, wormState.targetSegmentRadius, GAME_CONSTANTS.CAMERA_LERP_SPEED);
                 seg.setRadius(newRadius);
-                seg.body.setCircle(newRadius);
+                if (seg.body) {
+                    (seg.body as Phaser.Physics.Arcade.Body).setCircle(newRadius);
+                }
             }
         }
 
@@ -166,8 +168,9 @@ export default class GameScene extends Phaser.Scene {
                     this.physics.add.overlap(
                         worm.segments[0], // 머리
                         food.sprite, // 먹이
-                        (head: Phaser.GameObjects.Arc, foodSprite: Phaser.GameObjects.Arc) => {
-                            this.biteFood(foodSprite, key as WormType);
+                        (_, foodSprite) => {
+                            // 타입 캐스팅
+                            this.biteFood(foodSprite as Phaser.GameObjects.Arc, key as WormType);
                         }
                     );
                 }
@@ -260,8 +263,8 @@ export default class GameScene extends Phaser.Scene {
             this.physics.add.overlap(
                 this.worms[wormType].segments[0], // 새로 생성된 머리
                 food.sprite, // 먹이
-                (head: Phaser.GameObjects.Arc, foodSprite: Phaser.GameObjects.Arc) => {
-                    this.biteFood(foodSprite, wormType);
+                (_, foodSprite) => {
+                    this.biteFood(foodSprite as Phaser.GameObjects.Arc, wormType);
                 }
             );
         }
