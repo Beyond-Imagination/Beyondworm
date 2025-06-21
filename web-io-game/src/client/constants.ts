@@ -15,12 +15,10 @@ export const GAME_CONSTANTS = {
     // Camera
     CAMERA_LERP_SPEED: 0.08, // 카메라 줌 보간 속도 (0~1, 클수록 빠르게 따라감)
 
-    // ...추가 상수들...
+    // Food
     FOOD_RADIUS: 30, // 먹이(원) 반지름(px)
-    MAX_FOOD_COUNT: 25, // 최대 먹이 개수
+    MINIMUM_FOOD_COUNT: 25, // 맵상의 최소 먹이 개수
 
     // UI
     ZORDER_SEGMENT: 1000,
-
-    // ...추가 상수들...
 };
