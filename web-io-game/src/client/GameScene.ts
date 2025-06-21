@@ -102,6 +102,9 @@ export default class GameScene extends Phaser.Scene {
 
     shutdown() {
         // Scene이 종료될 때 호출
+        // 등록된 키보드 이벤트 리스너 제거
+        this.input.keyboard.off("keydown-SPACE");
+        this.input.keyboard.off("keyup-SPACE");
     }
 
     /**
