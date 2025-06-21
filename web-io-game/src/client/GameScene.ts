@@ -276,7 +276,7 @@ export default class GameScene extends Phaser.Scene {
         wormState.sprintFoodDropTimer += dt * 1000; // ms 단위로 타이머 증가
 
         if (wormState.sprintFoodDropTimer >= GAME_CONSTANTS.SPRINT_FOOD_DROP_INTERVAL) {
-            wormState.sprintFoodDropTimer = 0;
+            wormState.sprintFoodDropTimer -= GAME_CONSTANTS.SPRINT_FOOD_DROP_INTERVAL;
             const removed = wormState.segments.pop();
             if (removed) {
                 const food = new Food(this, removed.x, removed.y, GAME_CONSTANTS.FOOD_RADIUS, 0xff3333);
