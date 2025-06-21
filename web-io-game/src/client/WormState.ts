@@ -1,5 +1,5 @@
-import { GAME_CONSTANTS } from "./constants";
-import { MovementStrategy } from "./MovementStrategy";
+import {GAME_CONSTANTS} from "./constants";
+import {MovementStrategy} from "./MovementStrategy";
 
 export type WormType = "player" | "playerTrackerBot" | "foodSeekerBot";
 
@@ -12,6 +12,8 @@ export class WormState {
     public segmentColor: number;
     public movementStrategy: MovementStrategy;
     public nextTarget: Phaser.GameObjects.Arc | null; // 다음 목표물
+    public isSprinting: boolean;
+    public sprintFoodDropTimer: number;
 
     private boundBox: { minX: number, maxX: number, minY: number, maxY: number };
 
@@ -24,6 +26,8 @@ export class WormState {
         this.segmentColor = segmentColor;
         this.movementStrategy = movementStrategy; // 전략 할당
         this.nextTarget = null; // 초기에는 목표 없음
+        this.isSprinting = false;
+        this.sprintFoodDropTimer = 0;
         this.boundBox = { minX: 0, maxX: 0, minY: 0, maxY: 0 }; // 바운드 박스 초기화
     }
 
