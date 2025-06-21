@@ -48,6 +48,14 @@ export default class GameScene extends Phaser.Scene {
         if (!this.scene.isActive("UIScene")) {
             this.scene.launch("UIScene");
         }
+
+        // 스페이스바 이벤트 리스너 추가
+        this.input.keyboard.on("keydown-SPACE", () => {
+            this.playerState.isSprinting = true;
+        });
+        this.input.keyboard.on("keyup-SPACE", () => {
+            this.playerState.isSprinting = false;
+        });
     }
 
     update(_: number, dms: number) {
@@ -65,6 +73,11 @@ export default class GameScene extends Phaser.Scene {
 
             // 3. 지렁이 머리 이동 및 경로 샘플링 (updateWorm 호출)
             this.updateWorm(dt, head, wormState, wormState.path, wormState.segments);
+
+            // 4. 달리기 처리
+            if (wormState.isSprinting) {
+                this.handleSprinting(dt, wormState);
+            }
         }
 
 
@@ -187,8 +200,9 @@ export default class GameScene extends Phaser.Scene {
     }
 
     private updateWorm(dt: number, head: Phaser.GameObjects.Arc, wormState: WormState, path: Phaser.Math.Vector2[], segments: Phaser.GameObjects.Arc[]) {
-        head.x += wormState.lastVel.x * GAME_CONSTANTS.HEAD_SPEED * dt;
-        head.y += wormState.lastVel.y * GAME_CONSTANTS.HEAD_SPEED * dt;
+        const speed = wormState.isSprinting ? GAME_CONSTANTS.HEAD_SPRINT_SPEED : GAME_CONSTANTS.HEAD_SPEED;
+        head.x += wormState.lastVel.x * speed * dt;
+        head.y += wormState.lastVel.y * speed * dt;
 
         let dx = head.x - wormState.lastHead.x;
         let dy = head.y - wormState.lastHead.y;
@@ -230,6 +244,47 @@ export default class GameScene extends Phaser.Scene {
                     path[idx].x,
                     path[idx].y
                 );
+            }
+        }
+    }
+
+    private handleSprinting(dt: number, wormState: WormState) {
+        if (wormState.segments.length <= GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT) {
+            wormState.isSprinting = false;
+            return; // 최소 길이 이하면 달리기 중지
+        }
+
+        wormState.sprintFoodDropTimer += dt * 1000; // ms 단위로 타이머 증가
+
+        if (wormState.sprintFoodDropTimer >= GAME_CONSTANTS.SPRINT_FOOD_DROP_INTERVAL) {
+            wormState.sprintFoodDropTimer = 0;
+
+            // 세그먼트 제거 및 먹이 생성
+            const removedSegment = wormState.segments.pop();
+            if (removedSegment) {
+                // 먹이 생성
+                const food = new Food(this, removedSegment.x, removedSegment.y, GAME_CONSTANTS.FOOD_RADIUS, 0xff3333);
+                this.foods.push(food);
+
+                // 새로 생성된 먹이에 대해 모든 지렁이의 머리와 충돌 처리 추가
+                for (const key of Object.keys(this.worms)) {
+                    const worm = this.worms[key as WormType];
+                    if (worm.segments && worm.segments.length > 0) {
+                        this.physics.add.overlap(
+                            worm.segments[0], // 머리
+                            food.sprite, // 먹이
+                            (head: Phaser.GameObjects.Arc, foodSprite: Phaser.GameObjects.Arc) => {
+                                this.biteFood(foodSprite, key as WormType);
+                            }
+                        );
+                    }
+                }
+
+                removedSegment.destroy();
+
+                // 목표 세그먼트 반지름 재계산
+                wormState.targetSegmentRadius = GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS +
+                    (wormState.segments.length - GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT) * GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS;
             }
         }
     }
@@ -333,7 +388,7 @@ export default class GameScene extends Phaser.Scene {
 
         // 1. 바운더리 체크: wormB의 미리 계산된 boundBox 사용
         const headA = inTargetWorm.segments[0];
-        const { minX: otherMinX, maxX: otherMaxX, minY: otherMinY, maxY: otherMaxY } = inOtherworm.getBoundBox();
+        const {minX: otherMinX, maxX: otherMaxX, minY: otherMinY, maxY: otherMaxY} = inOtherworm.getBoundBox();
 
         // A의 머리 바운드박스가 B의 바운드박스 안에 있는지 확인
         const isInBound = (
