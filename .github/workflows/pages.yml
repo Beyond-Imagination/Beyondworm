@@ -23,5 +23,5 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./FE/dist
+          publish_dir: ./web-io-game/dist
           publish_branch: gh-pages
