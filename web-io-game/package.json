@@ -4,7 +4,7 @@
     "description": "A web-based I/O game built with TypeScript.",
     "main": "src/index.ts",
     "scripts": {
-        "prepare": "husky install",
+        "prepare": "cd .. && husky install web-io-game/.husky",
         "start": "ts-node src/index.ts",
         "build": "tsc",
         "test": "echo \"No tests specified\" && exit 0",
@@ -21,6 +21,7 @@
         "eslint": "^9.29.0",
         "eslint-config-prettier": "^10.1.5",
         "gh-pages": "^6.3.0",
+        "husky": "^9.1.7",
         "nodemon": "^2.0.0",
         "prettier": "^3.5.3",
         "ts-node": "^10.0.0",
