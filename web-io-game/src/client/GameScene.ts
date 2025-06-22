@@ -18,6 +18,8 @@ export default class GameScene extends Phaser.Scene {
     public playerState!: WormState;
     public worms!: Record<WormType, WormState>;
 
+    private wormHeadsGroup!: Phaser.Physics.Arcade.Group;
+    private foodsGroup!: Phaser.Physics.Arcade.Group;
 
     /* ── 조정 파라미터 ───────────────────────────── */
     private readonly turnLerp = 0.15;  // 0~1, 클수록 민첩
@@ -38,6 +40,17 @@ export default class GameScene extends Phaser.Scene {
             "foodSeekerBot": this.wormSpawner.spawnWorm(this, "foodSeekerBot", Phaser.Math.Between(100, MapWidth - 100), Phaser.Math.Between(100, MapHeight - 100))
         };
 
+        // 지렁이 머리들을 그룹에 추가하고 타입 설정
+        this.wormHeadsGroup = this.physics.add.group();
+        this.foodsGroup = this.physics.add.group();
+
+        for (const key of Object.keys(this.worms)) {
+            const type = key as WormType;
+            const head = this.worms[type].segments[0];
+            head.setData("wormType", type);
+            this.wormHeadsGroup.add(head);
+        }
+
         // ② 먹이 여러 개 랜덤 위치에 소환
         this.updateFoods();
 
@@ -48,6 +61,29 @@ export default class GameScene extends Phaser.Scene {
         if (!this.scene.isActive("UIScene")) {
             this.scene.launch("UIScene");
         }
+
+        // 그룹 간의 overlap을 한 번만 등록
+        this.physics.add.overlap(
+            this.wormHeadsGroup,
+            this.foodsGroup,
+            this.handleFoodCollision,
+            undefined,
+            this
+        );
+
+        // 스페이스바 이벤트
+        this.input.keyboard.on("keydown-SPACE", () => { this.playerState.isSprinting = true; });
+        this.input.keyboard.on("keyup-SPACE", () => { this.playerState.isSprinting = false; });
+    }
+
+    // 충돌 핸들러: head와 foodSprite
+    private handleFoodCollision(
+        head: Phaser.Types.Physics.Arcade.GameObjectWithBody,
+        foodSprite: Phaser.Types.Physics.Arcade.GameObjectWithBody
+    ) {
+        const type = head.getData("wormType") as WormType;
+        if (!foodSprite.active || !type) return;
+        this.biteFood(foodSprite as Phaser.GameObjects.Arc, type);
     }
 
     update(_: number, dms: number) {
@@ -65,6 +101,11 @@ export default class GameScene extends Phaser.Scene {
 
             // 3. 지렁이 머리 이동 및 경로 샘플링 (updateWorm 호출)
             this.updateWorm(dt, head, wormState, wormState.path, wormState.segments);
+
+            // 4. 달리기 처리
+            if (wormState.isSprinting) {
+                this.handleSprinting(dt, wormState);
+            }
         }
 
 
@@ -89,6 +130,9 @@ export default class GameScene extends Phaser.Scene {
 
     shutdown() {
         // Scene이 종료될 때 호출
+        // 등록된 키보드 이벤트 리스너 제거
+        this.input.keyboard.off("keydown-SPACE");
+        this.input.keyboard.off("keyup-SPACE");
     }
 
     /**
@@ -123,6 +167,7 @@ export default class GameScene extends Phaser.Scene {
         if (!food) return; // 먹이를 찾지 못하면 종료
 
         food.beEaten();
+        this.foodsGroup.remove(food.sprite, true, true); // 그룹에서 제거
 
         this.foods = this.foods.filter(f => f !== food); // 배열에서 제거
 
@@ -157,21 +202,8 @@ export default class GameScene extends Phaser.Scene {
             const y = Phaser.Math.Between(minY, maxY);
             const food = new Food(this, x, y, GAME_CONSTANTS.FOOD_RADIUS, 0xff3333);
             this.foods.push(food);
-
-            // 새로 생성된 먹이에 대해 모든 지렁이의 머리와 충돌 처리 추가
-            for (const key of Object.keys(this.worms)) {
-                const worm = this.worms[key as WormType];
-                // 각 지렁이의 segments를 확인하여 먹이와 충돌 설정
-                if (worm.segments && worm.segments.length > 0) {
-                    this.physics.add.overlap(
-                        worm.segments[0], // 머리
-                        food.sprite, // 먹이
-                        (head: Phaser.GameObjects.Arc, foodSprite: Phaser.GameObjects.Arc) => {
-                            this.biteFood(foodSprite, key as WormType);
-                        }
-                    );
-                }
-            }
+            // 그룹에 추가만 하면 overlap이 처리됨
+            this.foodsGroup.add(food.sprite);
         }
     }
 
@@ -187,8 +219,9 @@ export default class GameScene extends Phaser.Scene {
     }
 
     private updateWorm(dt: number, head: Phaser.GameObjects.Arc, wormState: WormState, path: Phaser.Math.Vector2[], segments: Phaser.GameObjects.Arc[]) {
-        head.x += wormState.lastVel.x * GAME_CONSTANTS.HEAD_SPEED * dt;
-        head.y += wormState.lastVel.y * GAME_CONSTANTS.HEAD_SPEED * dt;
+        const speed = wormState.isSprinting ? GAME_CONSTANTS.HEAD_SPRINT_SPEED : GAME_CONSTANTS.HEAD_SPEED;
+        head.x += wormState.lastVel.x * speed * dt;
+        head.y += wormState.lastVel.y * speed * dt;
 
         let dx = head.x - wormState.lastHead.x;
         let dy = head.y - wormState.lastHead.y;
@@ -234,9 +267,33 @@ export default class GameScene extends Phaser.Scene {
         }
     }
 
+    private handleSprinting(dt: number, wormState: WormState) {
+        if (wormState.segments.length <= GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT) {
+            wormState.isSprinting = false;
+            return; // 최소 길이 이하면 달리기 중지
+        }
+
+        wormState.sprintFoodDropTimer += dt * 1000; // ms 단위로 타이머 증가
+
+        if (wormState.sprintFoodDropTimer >= GAME_CONSTANTS.SPRINT_FOOD_DROP_INTERVAL) {
+            wormState.sprintFoodDropTimer -= GAME_CONSTANTS.SPRINT_FOOD_DROP_INTERVAL;
+            const removed = wormState.segments.pop();
+            if (removed) {
+                const food = new Food(this, removed.x, removed.y, GAME_CONSTANTS.FOOD_RADIUS, 0xff3333);
+                this.foods.push(food);
+                this.foodsGroup.add(food.sprite);
+                removed.destroy();
+                wormState.targetSegmentRadius = GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS +
+                    (wormState.segments.length - GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT) * GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS;
+            }
+        }
+    }
+
     private killWorm(wormType: WormType) {
         const wormState = this.worms[wormType];
         if (!wormState || wormState.segments.length === 0) return;
+
+        this.wormHeadsGroup.remove(wormState.segments[0], true, true); // 머리 제거
 
         // 1. 먹은 먹이 수만큼 시체 경로를 따라 먹이 생성
         const foodToDrop = wormState.segments.length - GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT;
@@ -246,29 +303,9 @@ export default class GameScene extends Phaser.Scene {
 
             for (let i = 0; i < path.length; i += step) {
                 const position = path[i];
-                const food = new Food(
-                    this,
-                    position.x,
-                    position.y,
-                    GAME_CONSTANTS.FOOD_RADIUS,
-                    0xff3333
-                );
+                const food = new Food(this, position.x, position.y, GAME_CONSTANTS.FOOD_RADIUS, 0xff3333);
                 this.foods.push(food);
-
-                // 새로 생성된 먹이에 대해 모든 지렁이의 머리와 충돌 처리 추가
-                for (const key of Object.keys(this.worms)) {
-                    const worm = this.worms[key as WormType];
-                    // 죽은 지렁이 자신을 제외한 살아있는 지렁이와 충돌 설정
-                    if (worm && worm.segments.length > 0 && worm !== wormState) {
-                        this.physics.add.overlap(
-                            worm.segments[0], // 머리
-                            food.sprite, // 먹이
-                            (head: Phaser.GameObjects.Arc, foodSprite: Phaser.GameObjects.Arc) => {
-                                this.biteFood(foodSprite, key as WormType);
-                            }
-                        );
-                    }
-                }
+                this.foodsGroup.add(food.sprite);
             }
         }
 
@@ -279,7 +316,6 @@ export default class GameScene extends Phaser.Scene {
 
         // 스포너에 반환
         this.wormSpawner.releaseWorm(wormType, wormState);
-
         // worms에서 제거 후 새로 스폰
         delete this.worms[wormType];
         this.worms[wormType] = this.wormSpawner.spawnWorm(
@@ -288,18 +324,10 @@ export default class GameScene extends Phaser.Scene {
             Phaser.Math.Between(100, GAME_CONSTANTS.MAP_WIDTH - 100),
             Phaser.Math.Between(100, GAME_CONSTANTS.MAP_HEIGHT - 100)
         );
-
-        // 기존의 먹이들을 대상으로 충돌처리 추가
-        for (const food of this.foods) {
-            this.physics.add.overlap(
-                this.worms[wormType].segments[0], // 새로 생성된 머리
-                food.sprite, // 먹이
-                (head: Phaser.GameObjects.Arc, foodSprite: Phaser.GameObjects.Arc) => {
-                    this.biteFood(foodSprite, wormType);
-                }
-            );
-        }
-
+        // 새 지렁이 머리만 그룹에 추가
+        const newHead = this.worms[wormType].segments[0];
+        newHead.setData("wormType", wormType);
+        this.wormHeadsGroup.add(newHead);
         if (wormType === "player") {
             this.InitializePlayer();
 
@@ -367,7 +395,7 @@ export default class GameScene extends Phaser.Scene {
 
         // 1. 바운더리 체크: wormB의 미리 계산된 boundBox 사용
         const headA = inTargetWorm.segments[0];
-        const { minX: otherMinX, maxX: otherMaxX, minY: otherMinY, maxY: otherMaxY } = inOtherworm.getBoundBox();
+        const {minX: otherMinX, maxX: otherMaxX, minY: otherMinY, maxY: otherMaxY} = inOtherworm.getBoundBox();
 
         // A의 머리 바운드박스가 B의 바운드박스 안에 있는지 확인
         const isInBound = (
