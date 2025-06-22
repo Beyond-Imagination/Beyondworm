@@ -383,26 +383,44 @@ export default class GameScene extends Phaser.Scene {
      */
     private checkWormsCollision() {
         // TODO: 최적화 필수.
+        // 엄청 큰 벌레와 작은 벌레간의 충돌처리 로직을 효율적으로 할 수 있는 방법이 있을까?
+        // 같은 틱에 여러 벌레가 아닌, 한 벌레만 죽게한다면, 불필요한 로직을 줄일 수도 있다.
 
-        const killedWorms: WormState[] = []; // 죽은 벌레를 저장할 배열
+        const killedWorms = new Set<WormState>(); // 죽은 벌레를 저장할 Set
 
         // 모든 지렁이 쌍에 대해 충돌 검사
+        // 같은 Tick에 여러 벌레가 동시에 죽을 수도 있다.
         const wormTypes = Object.keys(this.worms) as WormType[];
         for (let i = 0; i < wormTypes.length; i++) {
             const wormA = this.worms[wormTypes[i]];
             for (let j = i + 1; j < wormTypes.length; j++) {
                 const wormB = this.worms[wormTypes[j]];
+
+                // A 머리 vs B 머리
+                const headA = wormA.segments[0];
+                const headB = wormB.segments[0];
+                const dist = Phaser.Math.Distance.Between(headA.x, headA.y, headB.x, headB.y);
+                if (dist < headA.radius + headB.radius) {
+                    // 더 짧은 쪽만 죽음, 길이가 같으면 둘 다 죽음
+                    if (wormA.segments.length > wormB.segments.length) {
+                        killedWorms.add(wormB);
+                    } else if (wormA.segments.length < wormB.segments.length) {
+                        killedWorms.add(wormA);
+                    } else {
+                        killedWorms.add(wormA);
+                        killedWorms.add(wormB);
+                    }
+                    continue; // 머리끼리 충돌 시, 몸통 검사 생략(원하면 생략하지 않아도 됨)
+                }
+
                 // A 머리 vs B 몸통
                 if (this.checkWormCollision(wormA, wormB)) {
-                    if (!killedWorms.includes(wormA)) {
-                        killedWorms.push(wormA);
-                    }
+                    killedWorms.add(wormA);
                 }
+
                 // B 머리 vs A 몸통
                 if (this.checkWormCollision(wormB, wormA)) {
-                    if (!killedWorms.includes(wormB)) {
-                        killedWorms.push(wormB);
-                    }
+                    killedWorms.add(wormB);
                 }
             }
         }
