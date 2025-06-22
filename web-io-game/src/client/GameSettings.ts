@@ -48,7 +48,10 @@ export default class GameSettings {
     public set(keyOrSettings: any, value?: any): void {
         if (typeof keyOrSettings === "string") {
             // 단일 값 설정
-            this._settings[keyOrSettings as keyof GameSettingsType] = value;
+            const key = keyOrSettings as keyof GameSettingsType;
+            if (key in this._settings && value !== undefined && typeof value === typeof this._settings[key]) {
+                this._settings[key] = value;
+            }
         } else if (typeof keyOrSettings === "object" && keyOrSettings !== null) {
             // 여러 값 한 번에 설정
             Object.entries(keyOrSettings).forEach(([key, val]) => {

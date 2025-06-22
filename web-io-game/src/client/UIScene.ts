@@ -11,10 +11,6 @@ export default class UIScene extends Phaser.Scene {
 
     constructor() {
         super({ key: "UIScene" });
-        // 개발 환경에서만 변수 초기화
-        if (import.meta.env.MODE === "development") {
-            //
-        }
     }
 
     preload() {
@@ -50,7 +46,6 @@ export default class UIScene extends Phaser.Scene {
     private createDebug() {
         // 개발 환경에서만 동작
         if (import.meta.env.MODE !== "development") return;
-        // @ts-ignore
         this.debugText = this.add.text(
             20, 20, "", { font: "18px monospace", color: "#0f0", backgroundColor: "#222a" }
         )
