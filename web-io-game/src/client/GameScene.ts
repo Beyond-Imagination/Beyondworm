@@ -197,7 +197,7 @@ export default class GameScene extends Phaser.Scene {
 
     private updateFoods(minX = 100, maxX = GAME_CONSTANTS.MAP_WIDTH - 100, minY = 100, maxY = GAME_CONSTANTS.MAP_HEIGHT - 100) {
         // 먹이 수가 부족하면 다시 랜덤 생성
-        while (this.foods.length < GAME_CONSTANTS.MAX_FOOD_COUNT) {
+        while (this.foods.length < GAME_CONSTANTS.MINIMUM_FOOD_COUNT) {
             const x = Phaser.Math.Between(minX, maxX);
             const y = Phaser.Math.Between(minY, maxY);
             const food = new Food(this, x, y, GAME_CONSTANTS.FOOD_RADIUS, 0xff3333);
@@ -294,6 +294,20 @@ export default class GameScene extends Phaser.Scene {
         if (!wormState || wormState.segments.length === 0) return;
 
         this.wormHeadsGroup.remove(wormState.segments[0], true, true); // 머리 제거
+
+        // 1. 먹은 먹이 수만큼 시체 경로를 따라 먹이 생성
+        const foodToDrop = wormState.segments.length - GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT;
+        if (foodToDrop > 0) {
+            const path = wormState.path;
+            const step = Math.max(1, Math.floor(path.length / foodToDrop));
+
+            for (let i = 0; i < path.length; i += step) {
+                const position = path[i];
+                const food = new Food(this, position.x, position.y, GAME_CONSTANTS.FOOD_RADIUS, 0xff3333);
+                this.foods.push(food);
+                this.foodsGroup.add(food.sprite);
+            }
+        }
 
         // 모든 세그먼트 제거
         for (const segment of wormState.segments) {
