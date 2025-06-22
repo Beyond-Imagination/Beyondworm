@@ -1,7 +1,7 @@
 export const GAME_CONSTANTS = {
     // Map
-    MAP_WIDTH: 15000,
-    MAP_HEIGHT: 10000,
+    MAP_WIDTH: 3000,
+    MAP_HEIGHT: 2000,
 
     // Segment
     SEGMENT_SPACING: 14, // 세그먼트 간 고정 거리(px)
@@ -19,7 +19,7 @@ export const GAME_CONSTANTS = {
 
     // Food
     FOOD_RADIUS: 30, // 먹이(원) 반지름(px)
-    MINIMUM_FOOD_COUNT: 200, // 맵상의 최소 먹이 개수
+    MINIMUM_FOOD_COUNT: 25, // 맵상의 최소 먹이 개수
 
     // UI
     ZORDER_SEGMENT: 1000,
