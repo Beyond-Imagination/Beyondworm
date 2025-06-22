@@ -293,6 +293,8 @@ export default class GameScene extends Phaser.Scene {
         const wormState = this.worms[wormType];
         if (!wormState || wormState.segments.length === 0) return;
 
+        this.wormHeadsGroup.remove(wormState.segments[0], true, true); // 머리 제거
+
         // 모든 세그먼트 제거
         for (const segment of wormState.segments) {
             segment.destroy();
@@ -300,8 +302,6 @@ export default class GameScene extends Phaser.Scene {
 
         // 스포너에 반환
         this.wormSpawner.releaseWorm(wormType, wormState);
-
-        this.wormHeadsGroup.remove(wormState.segments[0], true, true); // 머리 제거
         // worms에서 제거 후 새로 스폰
         delete this.worms[wormType];
         this.worms[wormType] = this.wormSpawner.spawnWorm(
