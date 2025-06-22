@@ -1,5 +1,4 @@
 import Phaser from "phaser";
-import GameSettings from "./GameSettings";
 import Food from "./Food";
 import { GAME_CONSTANTS } from "./constants";
 import { WormState, WormType } from "./WormState";
@@ -30,15 +29,8 @@ export default class GameScene extends Phaser.Scene {
     }
 
     create() {
-        // 개발 환경에서만 치트 등록
-        if (import.meta.env.MODE === "development") {
-            import("./Cheat").then(mod => {
-                mod.registerCheats?.(this);
-            });
-        }
-
-        const MapWidth = GameSettings.instance.get("MAP_WIDTH");
-        const MapHeight = GameSettings.instance.get("MAP_HEIGHT");
+        const MapWidth = GAME_CONSTANTS.MAP_WIDTH;
+        const MapHeight = GAME_CONSTANTS.MAP_HEIGHT;
 
         // ① 기본 지렁이 생성 (스포너에서 꺼내서 사용)
         this.playerState = this.wormSpawner.spawnWorm(this, "player", Phaser.Math.Between(100, MapWidth - 100), Phaser.Math.Between(100, MapHeight - 100));
@@ -205,7 +197,7 @@ export default class GameScene extends Phaser.Scene {
 
     private updateFoods(minX = 100, maxX = GAME_CONSTANTS.MAP_WIDTH - 100, minY = 100, maxY = GAME_CONSTANTS.MAP_HEIGHT - 100) {
         // 먹이 수가 부족하면 다시 랜덤 생성
-        while (this.foods.length < GameSettings.instance.get("MINIMUM_FOOD_COUNT")) {
+        while (this.foods.length < GAME_CONSTANTS.MINIMUM_FOOD_COUNT) {
             const x = Phaser.Math.Between(minX, maxX);
             const y = Phaser.Math.Between(minY, maxY);
             const food = new Food(this, x, y, GAME_CONSTANTS.FOOD_RADIUS, 0xff3333);
@@ -403,7 +395,7 @@ export default class GameScene extends Phaser.Scene {
 
         // 1. 바운더리 체크: wormB의 미리 계산된 boundBox 사용
         const headA = inTargetWorm.segments[0];
-        const { minX: otherMinX, maxX: otherMaxX, minY: otherMinY, maxY: otherMaxY } = inOtherworm.getBoundBox();
+        const {minX: otherMinX, maxX: otherMaxX, minY: otherMinY, maxY: otherMaxY} = inOtherworm.getBoundBox();
 
         // A의 머리 바운드박스가 B의 바운드박스 안에 있는지 확인
         const isInBound = (

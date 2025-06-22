@@ -1,23 +1,11 @@
 import Phaser from "phaser";
 import { GAME_CONSTANTS } from "./constants";
-import GameSettings from "./GameSettings";
 
 export default class UIScene extends Phaser.Scene {
     private foodText!: Phaser.GameObjects.Text;
 
-    // 디버그 변수는 개발 환경에서만 선언
-    private debugText?: Phaser.GameObjects.Text;
-    private isGameStateDebugVisible = false;
-
     constructor() {
-        super({ key: "UIScene" });
-        // 개발 환경에서만 변수 초기화
-        if (import.meta.env.MODE === "development") {
-            // @ts-ignore
-            this.debugText = undefined;
-            // @ts-ignore
-            this.isGameStateDebugVisible = false;
-        }
+        super({key: "UIScene"});
     }
 
     preload() {
@@ -30,7 +18,7 @@ export default class UIScene extends Phaser.Scene {
             this.scale.width - 40,
             20,
             "🍎 0",
-            { font: "32px Arial", color: "#fff", fontStyle: "bold" }
+            {font: "32px Arial", color: "#fff", fontStyle: "bold"}
         )
             .setOrigin(1, 0)
             .setStroke("#222", 6)
@@ -43,29 +31,6 @@ export default class UIScene extends Phaser.Scene {
         this.scale.on("resize", (gameSize: Phaser.Structs.Size) => {
             this.foodText.setPosition(gameSize.width - 40, 20);
         });
-
-        // 디버그 UI는 별도 함수에서 관리
-        if (import.meta.env.MODE === "development") {
-            this.create_debug();
-        }
-    }
-
-    private create_debug() {
-        // 개발 환경에서만 동작
-        if (import.meta.env.MODE !== "development") return;
-        // @ts-ignore
-        this.debugText = this.add.text(
-            20, 20, "", { font: "18px monospace", color: "#0f0", backgroundColor: "#222a" }
-        )
-            .setOrigin(0, 0)
-            .setDepth(10001)
-            .setVisible(false);
-    }
-
-    public toggleGameStateDebug(visible: boolean) {
-        if (import.meta.env.MODE !== "development" || !this.debugText) return;
-        this.isGameStateDebugVisible = visible;
-        this.debugText.setVisible(visible);
     }
 
     update() {
@@ -77,19 +42,5 @@ export default class UIScene extends Phaser.Scene {
             const eatenCount = (gameScene.playerState.segments?.length ?? 0) - defaultCount;
             this.foodText.setText(`🍎 ${eatenCount}`);
         }
-
-        // 개발 환경에서만 디버그 업데이트
-        if (import.meta.env.MODE === "development") {
-            this.update_debug();
-        }
-    }
-
-    private update_debug() {
-        if (import.meta.env.MODE !== "development" || !this.debugText || !this.isGameStateDebugVisible) return;
-        const settings = GameSettings.instance.getAll();
-        const lines = Object.entries(settings)
-            .map(([k, v]) => `${k}: ${v}`)
-            .join("\n");
-        this.debugText.setText(lines);
     }
 }
