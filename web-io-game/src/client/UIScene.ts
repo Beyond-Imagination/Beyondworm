@@ -13,10 +13,7 @@ export default class UIScene extends Phaser.Scene {
         super({ key: "UIScene" });
         // 개발 환경에서만 변수 초기화
         if (import.meta.env.MODE === "development") {
-            // @ts-ignore
-            this.debugText = undefined;
-            // @ts-ignore
-            this.isGameStateDebugVisible = false;
+            //
         }
     }
 
@@ -46,11 +43,11 @@ export default class UIScene extends Phaser.Scene {
 
         // 디버그 UI는 별도 함수에서 관리
         if (import.meta.env.MODE === "development") {
-            this.create_debug();
+            this.createDebug();
         }
     }
 
-    private create_debug() {
+    private createDebug() {
         // 개발 환경에서만 동작
         if (import.meta.env.MODE !== "development") return;
         // @ts-ignore
@@ -80,11 +77,11 @@ export default class UIScene extends Phaser.Scene {
 
         // 개발 환경에서만 디버그 업데이트
         if (import.meta.env.MODE === "development") {
-            this.update_debug();
+            this.updateDebug();
         }
     }
 
-    private update_debug() {
+    private updateDebug() {
         if (import.meta.env.MODE !== "development" || !this.debugText || !this.isGameStateDebugVisible) return;
         const settings = GameSettings.instance.getAll();
         const lines = Object.entries(settings)
