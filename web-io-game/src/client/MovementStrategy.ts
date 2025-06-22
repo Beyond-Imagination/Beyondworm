@@ -3,7 +3,11 @@ import { WormState } from "./WormState";
 import Food from "./Food";
 
 export interface MovementStrategy {
-    calculateDesiredDirection(wormState: WormState, scene: GameScene, targetObject?: Phaser.GameObjects.Arc): Phaser.Math.Vector2;
+    calculateDesiredDirection(
+        wormState: WormState,
+        scene: GameScene,
+        targetObject?: Phaser.GameObjects.Arc,
+    ): Phaser.Math.Vector2;
 }
 
 // 플레이어 움직임 전략
@@ -15,7 +19,7 @@ export class PlayerMovementStrategy implements MovementStrategy {
         // nextTarget을 마우스 포인터 위치로 설정
         if (!wormState.nextTarget) {
             wormState.nextTarget = new Phaser.GameObjects.Arc(scene, worldPoint.x, worldPoint.y);
-        }else {
+        } else {
             wormState.nextTarget.x = worldPoint.x;
             wormState.nextTarget.y = worldPoint.y;
         }
@@ -28,15 +32,19 @@ export class TrackPlayerMovementStrategy implements MovementStrategy {
     calculateDesiredDirection(wormState: WormState, scene: GameScene): Phaser.Math.Vector2 {
         if (!wormState.nextTarget) {
             // gamescene에서 playerstate를 가져와서 head 위치를 nextTarget으로 설정
-            if (scene.playerState && Array.isArray(scene.playerState.segments) && scene.playerState.segments.length > 0) {
+            if (
+                scene.playerState &&
+                Array.isArray(scene.playerState.segments) &&
+                scene.playerState.segments.length > 0
+            ) {
                 wormState.nextTarget = scene.playerState.segments[0];
             }
 
-            if (!wormState.nextTarget){
+            if (!wormState.nextTarget) {
                 return Phaser.Math.Vector2.ZERO; // 플레이어가 없으면 움직이지 않음
             }
         }
-        
+
         return wormState.calculateDesiredDirection();
     }
 }
@@ -66,7 +74,9 @@ export class SeekFoodMovementStrategy implements MovementStrategy {
             return wormState.calculateDesiredDirection();
         } else {
             // 먹이가 없으면 마지막 방향 유지 시도
-            return wormState.lastVel.length() > 0 ? wormState.lastVel.clone().normalize() : new Phaser.Math.Vector2(0, 1);
+            return wormState.lastVel.length() > 0
+                ? wormState.lastVel.clone().normalize()
+                : new Phaser.Math.Vector2(0, 1);
         }
     }
 }

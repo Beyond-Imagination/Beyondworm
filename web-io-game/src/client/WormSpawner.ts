@@ -9,7 +9,7 @@ export default class WormSpawner {
     private wormQueues: WormQueueMap = {
         player: [],
         playerTrackerBot: [],
-        foodSeekerBot: []
+        foodSeekerBot: [],
     };
     private readonly cacheSize = 10;
 
@@ -65,7 +65,7 @@ export default class WormSpawner {
                 x,
                 y + i * GAME_CONSTANTS.SEGMENT_SPACING,
                 GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS,
-                wormState.segmentColor
+                wormState.segmentColor,
             );
             c.setStrokeStyle(4, 0x333333);
             c.setDepth(GAME_CONSTANTS.ZORDER_SEGMENT - i);
@@ -76,9 +76,7 @@ export default class WormSpawner {
 
         wormState.lastHead.set(wormState.segments[0].x, wormState.segments[0].y);
         for (let i = 0; i < GAME_CONSTANTS.SEGMENT_SPACING * GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT; i++) {
-            wormState.path.push(
-                new Phaser.Math.Vector2(wormState.lastHead.x, wormState.lastHead.y + i)
-            );
+            wormState.path.push(new Phaser.Math.Vector2(wormState.lastHead.x, wormState.lastHead.y + i));
         }
 
         return wormState;

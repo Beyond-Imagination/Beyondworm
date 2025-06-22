@@ -1,6 +1,6 @@
-import { Server as HttpServer } from 'http';
-import { Server as SocketServer } from 'socket.io';
-import { GameState, Action } from '../types';
+import { Server as HttpServer } from "http";
+import { Server as SocketServer } from "socket.io";
+import { GameState, Action } from "../types";
 
 export class Server {
     private httpServer: HttpServer;
@@ -18,7 +18,7 @@ export class Server {
             console.log(`Server is running on port ${port}`);
         });
 
-        this.io.on('connection', (socket) => {
+        this.io.on("connection", (socket) => {
             this.handleConnection(socket);
         });
     }
@@ -26,11 +26,11 @@ export class Server {
     private handleConnection(socket: SocketIO.Socket): void {
         console.log(`Client connected: ${socket.id}`);
 
-        socket.on('action', (action: Action) => {
+        socket.on("action", (action: Action) => {
             this.handleAction(action);
         });
 
-        socket.on('disconnect', () => {
+        socket.on("disconnect", () => {
             console.log(`Client disconnected: ${socket.id}`);
         });
     }
@@ -42,7 +42,7 @@ export class Server {
     }
 
     private broadcastUpdate(): void {
-        this.io.emit('gameState', this.gameState);
+        this.io.emit("gameState", this.gameState);
     }
 
     private initializeGameState(): GameState {
