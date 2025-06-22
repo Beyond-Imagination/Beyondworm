@@ -19,12 +19,8 @@ export default class UIScene extends Phaser.Scene {
 
     create() {
         // 화면 오른쪽 위에 텍스트 표시
-        this.foodText = this.add.text(
-            this.scale.width - 40,
-            20,
-            "🍎 0",
-            { font: "32px Arial", color: "#fff", fontStyle: "bold" }
-        )
+        this.foodText = this.add
+            .text(this.scale.width - 40, 20, "🍎 0", { font: "32px Arial", color: "#fff", fontStyle: "bold" })
             .setOrigin(1, 0)
             .setStroke("#222", 6)
             .setShadow(4, 4, "#000", 8, true, true)
@@ -46,9 +42,8 @@ export default class UIScene extends Phaser.Scene {
     private createDebug() {
         // 개발 환경에서만 동작
         if (import.meta.env.MODE !== "development") return;
-        this.debugText = this.add.text(
-            20, 20, "", { font: "18px monospace", color: "#0f0", backgroundColor: "#222a" }
-        )
+        this.debugText = this.add
+            .text(20, 20, "", { font: "18px monospace", color: "#0f0", backgroundColor: "#222a" })
             .setOrigin(0, 0)
             .setDepth(10001)
             .setVisible(false);

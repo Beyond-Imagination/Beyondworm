@@ -1,5 +1,5 @@
-import {GAME_CONSTANTS} from "./constants";
-import {MovementStrategy} from "./MovementStrategy";
+import { GAME_CONSTANTS } from "./constants";
+import { MovementStrategy } from "./MovementStrategy";
 
 export type WormType = "player" | "playerTrackerBot" | "foodSeekerBot";
 
@@ -15,7 +15,7 @@ export class WormState {
     public isSprinting: boolean;
     public sprintFoodDropTimer: number;
 
-    private boundBox: { minX: number, maxX: number, minY: number, maxY: number };
+    private boundBox: { minX: number; maxX: number; minY: number; maxY: number };
 
     constructor(segmentColor: number, movementStrategy: MovementStrategy) {
         this.lastVel = new Phaser.Math.Vector2(0, 1); // 초기 방향은 아래로
@@ -33,20 +33,17 @@ export class WormState {
 
     calculateDesiredDirection() {
         const head = this.segments[0];
-        const desiredDir = new Phaser.Math.Vector2(
-            this.nextTarget!!.x - head.x,
-            this.nextTarget!!.y - head.y
-        );
+        const desiredDir = new Phaser.Math.Vector2(this.nextTarget!!.x - head.x, this.nextTarget!!.y - head.y);
         return desiredDir.length() > 0 ? desiredDir.normalize() : Phaser.Math.Vector2.ZERO;
     }
 
     // 반지름 크기를 포함한 BoundBox값 반환
-    getBoundBox(): { minX: number, maxX: number, minY: number, maxY: number } {
+    getBoundBox(): { minX: number; maxX: number; minY: number; maxY: number } {
         return {
             minX: this.boundBox.minX - this.targetSegmentRadius,
             maxX: this.boundBox.maxX + this.targetSegmentRadius,
             minY: this.boundBox.minY - this.targetSegmentRadius,
-            maxY: this.boundBox.maxY + this.targetSegmentRadius
+            maxY: this.boundBox.maxY + this.targetSegmentRadius,
         };
     }
 
@@ -68,7 +65,10 @@ export class WormState {
             removedVec.y === this.boundBox.maxY
         ) {
             // 전체 path/segments를 순회해서 boundBox 재계산
-            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            let minX = Infinity,
+                maxX = -Infinity,
+                minY = Infinity,
+                maxY = -Infinity;
             for (const seg of this.segments) {
                 if (seg.x < minX) minX = seg.x;
                 if (seg.x > maxX) maxX = seg.x;

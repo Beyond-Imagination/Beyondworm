@@ -23,7 +23,7 @@ export default class GameScene extends Phaser.Scene {
     private foodsGroup!: Phaser.Physics.Arcade.Group;
 
     /* ── 조정 파라미터 ───────────────────────────── */
-    private readonly turnLerp = 0.15;  // 0~1, 클수록 민첩
+    private readonly turnLerp = 0.15; // 0~1, 클수록 민첩
 
     preload() {
         // 에셋(이미지, 사운드 등) 로드
@@ -32,7 +32,7 @@ export default class GameScene extends Phaser.Scene {
     create() {
         // 개발 환경에서만 치트 등록
         if (import.meta.env.MODE === "development") {
-            import("./Cheat").then(mod => {
+            import("./Cheat").then((mod) => {
                 mod.registerCheats?.(this);
             });
         }
@@ -41,11 +41,26 @@ export default class GameScene extends Phaser.Scene {
         const MapHeight = GameSettings.instance.get("MAP_HEIGHT");
 
         // ① 기본 지렁이 생성 (스포너에서 꺼내서 사용)
-        this.playerState = this.wormSpawner.spawnWorm(this, "player", Phaser.Math.Between(100, MapWidth - 100), Phaser.Math.Between(100, MapHeight - 100));
+        this.playerState = this.wormSpawner.spawnWorm(
+            this,
+            "player",
+            Phaser.Math.Between(100, MapWidth - 100),
+            Phaser.Math.Between(100, MapHeight - 100),
+        );
         this.worms = {
-            "player": this.playerState,
-            "playerTrackerBot": this.wormSpawner.spawnWorm(this, "playerTrackerBot", Phaser.Math.Between(100, MapWidth - 100), Phaser.Math.Between(100, MapHeight - 100)),
-            "foodSeekerBot": this.wormSpawner.spawnWorm(this, "foodSeekerBot", Phaser.Math.Between(100, MapWidth - 100), Phaser.Math.Between(100, MapHeight - 100))
+            player: this.playerState,
+            playerTrackerBot: this.wormSpawner.spawnWorm(
+                this,
+                "playerTrackerBot",
+                Phaser.Math.Between(100, MapWidth - 100),
+                Phaser.Math.Between(100, MapHeight - 100),
+            ),
+            foodSeekerBot: this.wormSpawner.spawnWorm(
+                this,
+                "foodSeekerBot",
+                Phaser.Math.Between(100, MapWidth - 100),
+                Phaser.Math.Between(100, MapHeight - 100),
+            ),
         };
 
         // 지렁이 머리들을 그룹에 추가하고 타입 설정
@@ -71,23 +86,21 @@ export default class GameScene extends Phaser.Scene {
         }
 
         // 그룹 간의 overlap을 한 번만 등록
-        this.physics.add.overlap(
-            this.wormHeadsGroup,
-            this.foodsGroup,
-            this.handleFoodCollision,
-            undefined,
-            this
-        );
+        this.physics.add.overlap(this.wormHeadsGroup, this.foodsGroup, this.handleFoodCollision, undefined, this);
 
         // 스페이스바 이벤트
-        this.input.keyboard.on("keydown-SPACE", () => { this.playerState.isSprinting = true; });
-        this.input.keyboard.on("keyup-SPACE", () => { this.playerState.isSprinting = false; });
+        this.input.keyboard.on("keydown-SPACE", () => {
+            this.playerState.isSprinting = true;
+        });
+        this.input.keyboard.on("keyup-SPACE", () => {
+            this.playerState.isSprinting = false;
+        });
     }
 
     // 충돌 핸들러: head와 foodSprite
     private handleFoodCollision(
         head: Phaser.Types.Physics.Arcade.GameObjectWithBody,
-        foodSprite: Phaser.Types.Physics.Arcade.GameObjectWithBody
+        foodSprite: Phaser.Types.Physics.Arcade.GameObjectWithBody,
     ) {
         const type = head.getData("wormType") as WormType;
         if (!foodSprite.active || !type) return;
@@ -116,11 +129,14 @@ export default class GameScene extends Phaser.Scene {
             }
         }
 
-
         for (const wormState of Object.values(this.worms)) {
             // 세그먼트 반지름을 부드럽게 보간
             for (const seg of wormState.segments) {
-                const newRadius = Phaser.Math.Linear(seg.radius, wormState.targetSegmentRadius, GAME_CONSTANTS.CAMERA_LERP_SPEED);
+                const newRadius = Phaser.Math.Linear(
+                    seg.radius,
+                    wormState.targetSegmentRadius,
+                    GAME_CONSTANTS.CAMERA_LERP_SPEED,
+                );
                 seg.setRadius(newRadius);
                 seg.body.setCircle(newRadius);
             }
@@ -160,27 +176,23 @@ export default class GameScene extends Phaser.Scene {
      * @param width 카메라 bounds의 너비 (예: 맵 너비)
      * @param height 카메라 bounds의 높이 (예: 맵 높이)
      */
-    private setupCamera(
-        target: Phaser.GameObjects.GameObject,
-        width: number,
-        height: number
-    ) {
+    private setupCamera(target: Phaser.GameObjects.GameObject, width: number, height: number) {
         this.cameras.main.setBounds(0, 0, width, height);
         this.cameras.main.startFollow(target, true, GAME_CONSTANTS.CAMERA_LERP_SPEED, GAME_CONSTANTS.CAMERA_LERP_SPEED);
         this.cameras.main.setZoom(1); // 필요시 zoom 값 조정
     }
 
     private biteFood(foodSprite: Phaser.GameObjects.Arc, wormType: WormType) {
-        const food = this.foods.find(f => f.sprite === foodSprite);
+        const food = this.foods.find((f) => f.sprite === foodSprite);
         if (!food) return; // 먹이를 찾지 못하면 종료
 
         food.beEaten();
         this.foodsGroup.remove(food.sprite, true, true); // 그룹에서 제거
 
-        this.foods = this.foods.filter(f => f !== food); // 배열에서 제거
+        this.foods = this.foods.filter((f) => f !== food); // 배열에서 제거
 
-        let targetWormState: WormState = this.worms[wormType]; // 기본값 설정
-        let targetSegments: Phaser.GameObjects.Arc[] = targetWormState.segments;
+        const targetWormState: WormState = this.worms[wormType]; // 기본값 설정
+        const targetSegments: Phaser.GameObjects.Arc[] = targetWormState.segments;
 
         // 새로운 세그먼트 추가
         const lastSegment = targetSegments[targetSegments.length - 1];
@@ -188,7 +200,7 @@ export default class GameScene extends Phaser.Scene {
             lastSegment.x,
             lastSegment.y,
             GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS,
-            targetWormState.segmentColor
+            targetWormState.segmentColor,
         );
         newSegment.setStrokeStyle(4, 0x333333);
         newSegment.setDepth(GAME_CONSTANTS.ZORDER_SEGMENT - targetSegments.length);
@@ -199,11 +211,17 @@ export default class GameScene extends Phaser.Scene {
         targetSegments.push(newSegment); // 해당 wormState의 segments에 추가
 
         // 목표 세그먼트 반지름 계산 (먹이 먹은 수만큼 증가)
-        targetWormState.targetSegmentRadius = GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS +
+        targetWormState.targetSegmentRadius =
+            GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS +
             (targetSegments.length - GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT) * GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS;
     }
 
-    private updateFoods(minX = 100, maxX = GAME_CONSTANTS.MAP_WIDTH - 100, minY = 100, maxY = GAME_CONSTANTS.MAP_HEIGHT - 100) {
+    private updateFoods(
+        minX = 100,
+        maxX = GAME_CONSTANTS.MAP_WIDTH - 100,
+        minY = 100,
+        maxY = GAME_CONSTANTS.MAP_HEIGHT - 100,
+    ) {
         // 먹이 수가 부족하면 다시 랜덤 생성
         while (this.foods.length < GameSettings.instance.get("MINIMUM_FOOD_COUNT")) {
             const x = Phaser.Math.Between(minX, maxX);
@@ -226,14 +244,20 @@ export default class GameScene extends Phaser.Scene {
         this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom, zoom, GAME_CONSTANTS.CAMERA_LERP_SPEED));
     }
 
-    private updateWorm(dt: number, head: Phaser.GameObjects.Arc, wormState: WormState, path: Phaser.Math.Vector2[], segments: Phaser.GameObjects.Arc[]) {
+    private updateWorm(
+        dt: number,
+        head: Phaser.GameObjects.Arc,
+        wormState: WormState,
+        path: Phaser.Math.Vector2[],
+        segments: Phaser.GameObjects.Arc[],
+    ) {
         const speed = wormState.isSprinting ? GAME_CONSTANTS.HEAD_SPRINT_SPEED : GAME_CONSTANTS.HEAD_SPEED;
         head.x += wormState.lastVel.x * speed * dt;
         head.y += wormState.lastVel.y * speed * dt;
 
-        let dx = head.x - wormState.lastHead.x;
-        let dy = head.y - wormState.lastHead.y;
-        let dist = Math.hypot(dx, dy);
+        const dx = head.x - wormState.lastHead.x;
+        const dy = head.y - wormState.lastHead.y;
+        const dist = Math.hypot(dx, dy);
 
         if (dist > 1) {
             const steps = Math.floor(dist);
@@ -241,7 +265,7 @@ export default class GameScene extends Phaser.Scene {
                 const t = s / dist;
                 const newVec = new Phaser.Math.Vector2(
                     Phaser.Math.Linear(wormState.lastHead.x, head.x, t),
-                    Phaser.Math.Linear(wormState.lastHead.y, head.y, t)
+                    Phaser.Math.Linear(wormState.lastHead.y, head.y, t),
                 );
                 path.unshift(newVec);
                 // path에 새 좌표 추가 시 boundBox 확장
@@ -267,10 +291,7 @@ export default class GameScene extends Phaser.Scene {
         for (let i = 1; i < segments.length; i++) {
             const idx = Math.min(Math.round(i * spacing), path.length - 1);
             if (idx >= 0 && path[idx]) {
-                segments[i].setPosition(
-                    path[idx].x,
-                    path[idx].y
-                );
+                segments[i].setPosition(path[idx].x, path[idx].y);
             }
         }
     }
@@ -291,8 +312,10 @@ export default class GameScene extends Phaser.Scene {
                 this.foods.push(food);
                 this.foodsGroup.add(food.sprite);
                 removed.destroy();
-                wormState.targetSegmentRadius = GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS +
-                    (wormState.segments.length - GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT) * GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS;
+                wormState.targetSegmentRadius =
+                    GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS +
+                    (wormState.segments.length - GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT) *
+                        GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS;
             }
         }
     }
@@ -330,7 +353,7 @@ export default class GameScene extends Phaser.Scene {
             this,
             wormType,
             Phaser.Math.Between(100, GAME_CONSTANTS.MAP_WIDTH - 100),
-            Phaser.Math.Between(100, GAME_CONSTANTS.MAP_HEIGHT - 100)
+            Phaser.Math.Between(100, GAME_CONSTANTS.MAP_HEIGHT - 100),
         );
         // 새 지렁이 머리만 그룹에 추가
         const newHead = this.worms[wormType].segments[0];
@@ -352,14 +375,13 @@ export default class GameScene extends Phaser.Scene {
     }
 
     /**
-    * 모든 벌레 쌍에 대해 충돌(죽음) 판정을 수행합니다.
-    * - 충돌이 발생한 벌레는 killedWorms 배열에 추가되고, 이후 killWorm을 통해 제거됩니다.
-    * - 각 벌레의 머리가 다른 벌레의 몸통에 닿았는지 검사합니다.
-    * - 한 쌍에 대해 양방향(머리 vs 몸통) 모두 검사합니다.
-    * - killedWorms는 WormState 인스턴스 배열로, 중복 추가를 방지합니다.
-    */
+     * 모든 벌레 쌍에 대해 충돌(죽음) 판정을 수행합니다.
+     * - 충돌이 발생한 벌레는 killedWorms 배열에 추가되고, 이후 killWorm을 통해 제거됩니다.
+     * - 각 벌레의 머리가 다른 벌레의 몸통에 닿았는지 검사합니다.
+     * - 한 쌍에 대해 양방향(머리 vs 몸통) 모두 검사합니다.
+     * - killedWorms는 WormState 인스턴스 배열로, 중복 추가를 방지합니다.
+     */
     private checkWormsCollision() {
-
         // TODO: 최적화 필수.
         // 엄청 큰 벌레와 작은 벌레간의 충돌처리 로직을 효율적으로 할 수 있는 방법이 있을까?
         // 같은 틱에 여러 벌레가 아닌, 한 벌레만 죽게한다면, 불필요한 로직을 줄일 수도 있다.
@@ -405,7 +427,7 @@ export default class GameScene extends Phaser.Scene {
 
         // 죽은 벌레 처리
         for (const worm of killedWorms) {
-            const wormType = Object.keys(this.worms).find(key => this.worms[key as WormType] === worm) as WormType;
+            const wormType = Object.keys(this.worms).find((key) => this.worms[key as WormType] === worm) as WormType;
             if (wormType) {
                 this.killWorm(wormType);
             }
@@ -418,16 +440,16 @@ export default class GameScene extends Phaser.Scene {
      * @param inOtherworm 충돌 대상 벌레(B, 몸통 기준)
      */
     private checkWormCollision(inTargetWorm: WormState, inOtherworm: WormState): boolean {
-
         // 1. 바운더리 체크: wormB의 미리 계산된 boundBox 사용
         const headA = inTargetWorm.segments[0];
         const { minX: otherMinX, maxX: otherMaxX, minY: otherMinY, maxY: otherMaxY } = inOtherworm.getBoundBox();
 
         // A의 머리 바운드박스가 B의 바운드박스 안에 있는지 확인
-        const isInBound = (
-            headA.x + headA.radius >= otherMinX && headA.x - headA.radius <= otherMaxX &&
-            headA.y + headA.radius >= otherMinY && headA.y - headA.radius <= otherMaxY
-        );
+        const isInBound =
+            headA.x + headA.radius >= otherMinX &&
+            headA.x - headA.radius <= otherMaxX &&
+            headA.y + headA.radius >= otherMinY &&
+            headA.y - headA.radius <= otherMaxY;
         // 바운더리 안에 있으면 디테일 체크
         if (!isInBound) {
             // 바운더리 밖이면 충돌 없음

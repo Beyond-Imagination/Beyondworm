@@ -26,20 +26,22 @@ web-io-game
 ## Getting Started
 
 1. **Clone the repository:**
-   ```
-   git clone <repository-url>
-   cd web-io-game
-   ```
+
+    ```
+    git clone <repository-url>
+    cd web-io-game
+    ```
 
 2. **Install dependencies:**
-   ```
-   npm install
-   ```
+
+    ```
+    npm install
+    ```
 
 3. **Run the application:**
-   ```
-   npm start
-   ```
+    ```
+    npm start
+    ```
 
 ## Features
 

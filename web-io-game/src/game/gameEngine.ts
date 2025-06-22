@@ -1,9 +1,5 @@
 class GameEngine {
-    
-    
-    
     // Should remove
-
 
     private gameState: any; // Replace 'any' with the actual type for game state
     private isRunning: boolean;
