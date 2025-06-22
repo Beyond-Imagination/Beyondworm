@@ -10,9 +10,15 @@ export interface MovementStrategy {
 export class PlayerMovementStrategy implements MovementStrategy {
     calculateDesiredDirection(wormState: WormState, scene: GameScene): Phaser.Math.Vector2 {
         const ptr = scene.input.activePointer;
+        const worldPoint = scene.cameras.main.getWorldPoint(ptr.x, ptr.y);
 
         // nextTarget을 마우스 포인터 위치로 설정
-        wormState.nextTarget = new Phaser.GameObjects.Arc(scene, ptr.worldX, ptr.worldY);
+        if (!wormState.nextTarget) {
+            wormState.nextTarget = new Phaser.GameObjects.Arc(scene, worldPoint.x, worldPoint.y);
+        }else {
+            wormState.nextTarget.x = worldPoint.x;
+            wormState.nextTarget.y = worldPoint.y;
+        }
         return wormState.calculateDesiredDirection();
     }
 }
