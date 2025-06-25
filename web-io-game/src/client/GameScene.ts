@@ -344,6 +344,7 @@ export default class GameScene extends Phaser.Scene {
         for (const segment of wormState.segments) {
             segment.destroy();
         }
+        wormState.nextTarget = null; // 다음 스폰때 타겟이 재할당될 수 있도록 초기화
 
         // 스포너에 반환
         this.wormSpawner.releaseWorm(wormType, wormState);
