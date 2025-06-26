@@ -17,7 +17,7 @@ export default class GameScene extends Phaser.Scene {
     public foods: Food[] = [];
 
     public playerState!: WormState; // 로컬 플레이어
-    public worms!: WormState[];     // 모든 지렁이 상태들
+    public worms!: WormState[]; // 모든 지렁이 상태들
 
     private wormHeadsGroup!: Phaser.Physics.Arcade.Group;
     private foodsGroup!: Phaser.Physics.Arcade.Group;
@@ -49,9 +49,7 @@ export default class GameScene extends Phaser.Scene {
         );
         this.worms.push(this.playerState);
 
-        const botTypeCount = Object.keys(BotType)
-            .filter(key => isNaN(Number(key))) // 숫자 키(역방향 매핑) 제외
-            .length;
+        const botTypeCount = Object.keys(BotType).filter((key) => isNaN(Number(key))).length; // 숫자 키(역방향 매핑) 제외
         for (let i = 0; i < GAME_CONSTANTS.BOT_COUNT; i++) {
             const randomType = Math.floor(Math.random() * botTypeCount) as BotType;
             const bot = this.wormSpawner.spawnBotWorm(
@@ -101,7 +99,7 @@ export default class GameScene extends Phaser.Scene {
         foodSprite: Phaser.Types.Physics.Arcade.GameObjectWithBody,
     ) {
         // head에 해당하는 wormState를 worms 배열에서 찾음
-        const eater = this.worms.find(w => w.segments[0] === head);
+        const eater = this.worms.find((w) => w.segments[0] === head);
         if (!foodSprite.active || !eater) return;
         this.biteFood(foodSprite as Phaser.GameObjects.Arc, eater);
     }
@@ -230,11 +228,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     private updateCamera() {
-        if (
-            !this.playerState ||
-            !this.playerState.segments ||
-            this.playerState.segments.length === 0
-        ) {
+        if (!this.playerState || !this.playerState.segments || this.playerState.segments.length === 0) {
             return;
         }
 
@@ -318,14 +312,13 @@ export default class GameScene extends Phaser.Scene {
                 wormState.targetSegmentRadius =
                     GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS +
                     (wormState.segments.length - GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT) *
-                    GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS;
+                        GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS;
             }
         }
     }
 
     private killWorm(worm: WormState) {
         if (!worm || worm.segments.length === 0) return;
-
 
         const targetWormType = worm.segments[0].getData("wormType");
         const targetBotType = worm.segments[0].getData("botType");
@@ -403,8 +396,7 @@ export default class GameScene extends Phaser.Scene {
                 console.error("Failed to respawn bot worm.");
                 return; // 봇 리스폰 실패 시 종료
             }
-        }
-        else {
+        } else {
             console.warn("Unknown worm type during respawn:", targetWormType);
             return; // 알 수 없는 벌레 타입이면 종료
         }

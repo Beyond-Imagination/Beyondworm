@@ -1,12 +1,12 @@
 import { GAME_CONSTANTS } from "./constants";
 import { MovementStrategy } from "./MovementStrategy";
 
-export enum WormType{
+export enum WormType {
     Player = 0,
     Bot = 1,
 }
 
-export enum BotType{
+export enum BotType {
     PlayerTracker = 0,
     FoodSeeker = 1,
 }
