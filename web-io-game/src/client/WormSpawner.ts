@@ -58,6 +58,7 @@ export default class WormSpawner {
         wormState.path = [];
         wormState.lastVel.set(0, 1);
         wormState.lastHead.set(x, y);
+        wormState.nextTarget = null;
 
         // 세그먼트 생성
         for (let i = 0; i < GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT; i++) {
