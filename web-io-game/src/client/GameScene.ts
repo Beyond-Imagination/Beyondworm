@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import GameSettings from "./GameSettings";
 import Food from "./Food";
 import { GAME_CONSTANTS } from "./constants";
-import { WormState, WormType } from "./WormState";
+import { WormState, WormType, BotType } from "./WormState";
 import WormSpawner from "./WormSpawner";
 
 export default class GameScene extends Phaser.Scene {
@@ -16,8 +16,8 @@ export default class GameScene extends Phaser.Scene {
     // 여기서는 GameScene의 인스턴스를 전략에 넘겨주고, (scene as any).foods로 접근하는 방식을 사용.
     public foods: Food[] = [];
 
-    public playerState!: WormState;
-    public worms!: Record<WormType, WormState>;
+    public playerState!: WormState; // 로컬 플레이어
+    public worms!: WormState[];     // 모든 지렁이 상태들
 
     private wormHeadsGroup!: Phaser.Physics.Arcade.Group;
     private foodsGroup!: Phaser.Physics.Arcade.Group;
@@ -41,36 +41,34 @@ export default class GameScene extends Phaser.Scene {
         const MapHeight = GameSettings.instance.get("MAP_HEIGHT");
 
         // ① 기본 지렁이 생성 (스포너에서 꺼내서 사용)
-        this.playerState = this.wormSpawner.spawnWorm(
+        this.worms = [];
+        this.playerState = this.wormSpawner.spawnPlayerWorm(
             this,
-            "player",
             Phaser.Math.Between(100, MapWidth - 100),
             Phaser.Math.Between(100, MapHeight - 100),
         );
-        this.worms = {
-            player: this.playerState,
-            playerTrackerBot: this.wormSpawner.spawnWorm(
+        this.worms.push(this.playerState);
+
+        const botTypeCount = Object.keys(BotType)
+            .filter(key => isNaN(Number(key))) // 숫자 키(역방향 매핑) 제외
+            .length;
+        for (let i = 0; i < GAME_CONSTANTS.BOT_COUNT; i++) {
+            const randomType = Math.floor(Math.random() * botTypeCount) as BotType;
+            const bot = this.wormSpawner.spawnBotWorm(
                 this,
-                "playerTrackerBot",
+                randomType,
                 Phaser.Math.Between(100, MapWidth - 100),
                 Phaser.Math.Between(100, MapHeight - 100),
-            ),
-            foodSeekerBot: this.wormSpawner.spawnWorm(
-                this,
-                "foodSeekerBot",
-                Phaser.Math.Between(100, MapWidth - 100),
-                Phaser.Math.Between(100, MapHeight - 100),
-            ),
-        };
+            );
+            this.worms.push(bot);
+        }
 
         // 지렁이 머리들을 그룹에 추가하고 타입 설정
         this.wormHeadsGroup = this.physics.add.group();
         this.foodsGroup = this.physics.add.group();
 
-        for (const key of Object.keys(this.worms)) {
-            const type = key as WormType;
-            const head = this.worms[type].segments[0];
-            head.setData("wormType", type);
+        for (const wormState of this.worms) {
+            const head = wormState.segments[0];
             this.wormHeadsGroup.add(head);
         }
 
@@ -102,16 +100,17 @@ export default class GameScene extends Phaser.Scene {
         head: Phaser.Types.Physics.Arcade.GameObjectWithBody,
         foodSprite: Phaser.Types.Physics.Arcade.GameObjectWithBody,
     ) {
-        const type = head.getData("wormType") as WormType;
-        if (!foodSprite.active || !type) return;
-        this.biteFood(foodSprite as Phaser.GameObjects.Arc, type);
+        // head에 해당하는 wormState를 worms 배열에서 찾음
+        const eater = this.worms.find(w => w.segments[0] === head);
+        if (!foodSprite.active || !eater) return;
+        this.biteFood(foodSprite as Phaser.GameObjects.Arc, eater);
     }
 
     update(_: number, dms: number) {
         const dt = dms / 1000;
 
         // 모든 지렁이 업데이트
-        for (const wormState of Object.values(this.worms)) {
+        for (const wormState of this.worms) {
             const head = wormState.segments[0];
 
             // 1. 목표 방향 계산 (전략 사용)
@@ -129,7 +128,7 @@ export default class GameScene extends Phaser.Scene {
             }
         }
 
-        for (const wormState of Object.values(this.worms)) {
+        for (const wormState of this.worms) {
             // 세그먼트 반지름을 부드럽게 보간
             for (const seg of wormState.segments) {
                 const newRadius = Phaser.Math.Linear(
@@ -164,8 +163,6 @@ export default class GameScene extends Phaser.Scene {
      * - 카메라 설정 등
      */
     private InitializePlayer() {
-        this.playerState = this.worms["player"];
-
         // camera setting
         this.setupCamera(this.playerState.segments[0], GAME_CONSTANTS.MAP_WIDTH, GAME_CONSTANTS.MAP_HEIGHT);
     }
@@ -182,7 +179,7 @@ export default class GameScene extends Phaser.Scene {
         this.cameras.main.setZoom(1); // 필요시 zoom 값 조정
     }
 
-    private biteFood(foodSprite: Phaser.GameObjects.Arc, wormType: WormType) {
+    private biteFood(foodSprite: Phaser.GameObjects.Arc, worm: WormState) {
         const food = this.foods.find((f) => f.sprite === foodSprite);
         if (!food) return; // 먹이를 찾지 못하면 종료
 
@@ -191,8 +188,7 @@ export default class GameScene extends Phaser.Scene {
 
         this.foods = this.foods.filter((f) => f !== food); // 배열에서 제거
 
-        const targetWormState: WormState = this.worms[wormType]; // 기본값 설정
-        const targetSegments: Phaser.GameObjects.Arc[] = targetWormState.segments;
+        const targetSegments = worm.segments;
 
         // 새로운 세그먼트 추가
         const lastSegment = targetSegments[targetSegments.length - 1];
@@ -200,7 +196,7 @@ export default class GameScene extends Phaser.Scene {
             lastSegment.x,
             lastSegment.y,
             GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS,
-            targetWormState.segmentColor,
+            worm.segmentColor,
         );
         newSegment.setStrokeStyle(4, 0x333333);
         newSegment.setDepth(GAME_CONSTANTS.ZORDER_SEGMENT - targetSegments.length);
@@ -211,7 +207,7 @@ export default class GameScene extends Phaser.Scene {
         targetSegments.push(newSegment); // 해당 wormState의 segments에 추가
 
         // 목표 세그먼트 반지름 계산 (먹이 먹은 수만큼 증가)
-        targetWormState.targetSegmentRadius =
+        worm.targetSegmentRadius =
             GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS +
             (targetSegments.length - GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT) * GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS;
     }
@@ -234,7 +230,14 @@ export default class GameScene extends Phaser.Scene {
     }
 
     private updateCamera() {
-        if (!this.playerState.segments || this.playerState.segments.length === 0) return;
+        if (
+            !this.playerState ||
+            !this.playerState.segments ||
+            this.playerState.segments.length === 0
+        ) {
+            return;
+        }
+
         // 화면에 항상 같은 비율로 보이도록 zoom 계산
         // (세그먼트 반지름이 커져도 화면에서는 항상 같은 비율로 보이게 함)
         const baseRadius = GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS;
@@ -315,23 +318,30 @@ export default class GameScene extends Phaser.Scene {
                 wormState.targetSegmentRadius =
                     GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS +
                     (wormState.segments.length - GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT) *
-                        GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS;
+                    GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS;
             }
         }
     }
 
-    private killWorm(wormType: WormType) {
-        const wormState = this.worms[wormType];
-        if (!wormState || wormState.segments.length === 0) return;
+    private killWorm(worm: WormState) {
+        if (!worm || worm.segments.length === 0) return;
 
-        this.wormHeadsGroup.remove(wormState.segments[0], true, true); // 머리 제거
 
-        // 1. 먹은 먹이 수만큼 시체 경로를 따라 먹이 생성
-        const foodToDrop = wormState.segments.length - GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT;
+        const targetWormType = worm.segments[0].getData("wormType");
+        const targetBotType = worm.segments[0].getData("botType");
+        if (targetWormType !== WormType.Player && targetWormType !== WormType.Bot) {
+            console.warn("Unknown worm type:", targetWormType);
+            return; // 알 수 없는 벌레 타입이면 종료
+        }
+
+        // 1. 머리 제거
+        this.wormHeadsGroup.remove(worm.segments[0], true, true);
+
+        // 2. 먹은 먹이 수만큼 시체 경로를 따라 먹이 생성
+        const foodToDrop = worm.segments.length - GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT;
         if (foodToDrop > 0) {
-            const path = wormState.path;
+            const path = worm.path;
             const step = Math.max(1, Math.floor(path.length / foodToDrop));
-
             for (let i = 0; i < path.length; i += step) {
                 const position = path[i];
                 const food = new Food(this, position.x, position.y, GAME_CONSTANTS.FOOD_RADIUS, 0xff3333);
@@ -340,38 +350,74 @@ export default class GameScene extends Phaser.Scene {
             }
         }
 
-        // 모든 세그먼트 제거
-        for (const segment of wormState.segments) {
+        // 3. 모든 세그먼트 제거
+        for (const segment of worm.segments) {
             segment.destroy();
         }
 
-        // 스포너에 반환
-        this.wormSpawner.releaseWorm(wormType, wormState);
-        // worms에서 제거 후 새로 스폰
-        delete this.worms[wormType];
-        this.worms[wormType] = this.wormSpawner.spawnWorm(
-            this,
-            wormType,
-            Phaser.Math.Between(100, GAME_CONSTANTS.MAP_WIDTH - 100),
-            Phaser.Math.Between(100, GAME_CONSTANTS.MAP_HEIGHT - 100),
-        );
-        // 새 지렁이 머리만 그룹에 추가
-        const newHead = this.worms[wormType].segments[0];
-        newHead.setData("wormType", wormType);
-        this.wormHeadsGroup.add(newHead);
-        if (wormType === "player") {
-            this.InitializePlayer();
-
-            this.worms["playerTrackerBot"].nextTarget = null; // 플레이어가 죽었으므로 추적 봇의 목표를 초기화
+        // 4. worms 배열에서 제거
+        const idx = this.worms.indexOf(worm);
+        if (idx !== -1) {
+            this.worms.splice(idx, 1);
         }
 
-        // // 유저인 경우 게임 종료
-        // if (wormType === "player") {
-        //     this.scene.stop("UIScene"); // UI 씬 중지
-        //     //this.scene.start("GameOverScene"); // 게임 오버 씬 시작
-        // }
+        // 5. 스포너에 반환 및 리스폰
+        let newWorm: WormState;
+        if (targetWormType === WormType.Player) {
+            this.wormSpawner.releasePlayerWorm(worm);
 
-        return;
+            // 플레이어 리스폰
+            newWorm = this.wormSpawner.spawnPlayerWorm(
+                this,
+                Phaser.Math.Between(100, GAME_CONSTANTS.MAP_WIDTH - 100),
+                Phaser.Math.Between(100, GAME_CONSTANTS.MAP_HEIGHT - 100),
+            );
+            if (!newWorm) {
+                console.error("Failed to respawn player worm.");
+                return; // 플레이어 리스폰 실패 시 종료
+            }
+
+            this.playerState = newWorm;
+            this.InitializePlayer();
+
+            // 모든 추적 봇의 목표 초기화
+            for (const wormState of this.worms) {
+                if (
+                    wormState.segments[0].getData("wormType") === WormType.Bot &&
+                    wormState.segments[0].getData("botType") === BotType.PlayerTracker
+                ) {
+                    wormState.nextTarget = null;
+                }
+            }
+        } else if (targetWormType === WormType.Bot) {
+            this.wormSpawner.releaseBotWorm(targetBotType, worm);
+
+            // 봇 리스폰
+            newWorm = this.wormSpawner.spawnBotWorm(
+                this,
+                targetBotType,
+                Phaser.Math.Between(100, GAME_CONSTANTS.MAP_WIDTH - 100),
+                Phaser.Math.Between(100, GAME_CONSTANTS.MAP_HEIGHT - 100),
+            );
+            if (!newWorm) {
+                console.error("Failed to respawn bot worm.");
+                return; // 봇 리스폰 실패 시 종료
+            }
+        }
+        else {
+            console.warn("Unknown worm type during respawn:", targetWormType);
+            return; // 알 수 없는 벌레 타입이면 종료
+        }
+
+        this.worms.push(newWorm);
+        const newHead = newWorm.segments[0];
+        this.wormHeadsGroup.add(newHead);
+
+        // // 유저인 경우 게임 종료 처리 등은 필요에 따라 추가
+        // if (worm.segments[0].getData("wormType") === WormType.Player) {
+        //     this.scene.stop("UIScene");
+        //     // this.scene.start("GameOverScene");
+        // }
     }
 
     /**
@@ -390,11 +436,10 @@ export default class GameScene extends Phaser.Scene {
 
         // 모든 지렁이 쌍에 대해 충돌 검사
         // 같은 Tick에 여러 벌레가 동시에 죽을 수도 있다.
-        const wormTypes = Object.keys(this.worms) as WormType[];
-        for (let i = 0; i < wormTypes.length; i++) {
-            const wormA = this.worms[wormTypes[i]];
-            for (let j = i + 1; j < wormTypes.length; j++) {
-                const wormB = this.worms[wormTypes[j]];
+        for (let i = 0; i < this.worms.length; i++) {
+            const wormA = this.worms[i];
+            for (let j = i + 1; j < this.worms.length; j++) {
+                const wormB = this.worms[j];
 
                 // A 머리 vs B 머리
                 const headA = wormA.segments[0];
@@ -427,10 +472,7 @@ export default class GameScene extends Phaser.Scene {
 
         // 죽은 벌레 처리
         for (const worm of killedWorms) {
-            const wormType = Object.keys(this.worms).find((key) => this.worms[key as WormType] === worm) as WormType;
-            if (wormType) {
-                this.killWorm(wormType);
-            }
+            this.killWorm(worm);
         }
     }
 
