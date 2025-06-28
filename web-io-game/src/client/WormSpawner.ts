@@ -1,77 +1,212 @@
 import { GAME_CONSTANTS } from "./constants";
-import { WormState, WormType } from "./WormState";
+import { WormState, WormType, BotType } from "./WormState";
 import { PlayerMovementStrategy, TrackPlayerMovementStrategy, SeekFoodMovementStrategy } from "./MovementStrategy";
 import GameScene from "./GameScene";
 
-type WormQueueMap = Record<WormType, WormState[]>;
+type WormQueueMap = {
+    [WormType.Player]: WormState[];
+    [WormType.Bot]: {
+        [BotType.PlayerTracker]: WormState[];
+        [BotType.FoodSeeker]: WormState[];
+    };
+};
 
 export default class WormSpawner {
-    private wormQueues: WormQueueMap = {
-        player: [],
-        playerTrackerBot: [],
-        foodSeekerBot: [],
+    public wormQueues: WormQueueMap = {
+        [WormType.Player]: [],
+        [WormType.Bot]: {
+            [BotType.PlayerTracker]: [],
+            [BotType.FoodSeeker]: [],
+        },
     };
-    private readonly cacheSize = 10;
+    private readonly cacheSize = 0;
 
     constructor() {
-        // 각 타입별로 미리 wormState 인스턴스를 여러 개 생성해서 큐에 저장
-        for (const type of Object.keys(this.wormQueues) as WormType[]) {
+    }
+
+    public initialize(scene: GameScene) {
+        // Player용 미리 생성
+        for (let i = 0; i < this.cacheSize; i++) {
+            // 기본 플레이어 웜 생성
+            const worm = this.createDefaultPlayerWorm(scene);
+
+            // 모든 세그먼트 비활성화
+            for (const segment of worm.segments) {
+                segment.visible = false;
+                segment.active = false;
+                if (segment.body) segment.body.enable = false;
+            }
+
+            // Player 타입 큐에 추가
+            this.wormQueues[WormType.Player].push(worm);
+        }
+        // Bot용 미리 생성
+        for (const botType of [BotType.PlayerTracker, BotType.FoodSeeker]) {
             for (let i = 0; i < this.cacheSize; i++) {
-                this.wormQueues[type].push(this.createDefaultWorm(type));
+                // 기본 봇 웜 생성
+                const worm = this.createDefaultBotWorm(botType, scene);
+
+                // 모든 세그먼트 비활성화
+                for (const segment of worm.segments) {
+                    segment.visible = false;
+                    segment.active = false;
+                    if (segment.body) segment.body.enable = false;
+                }
+
+                // 봇 타입에 맞는 큐에 추가
+                this.wormQueues[WormType.Bot][botType].push(worm);
             }
         }
     }
+    private createDefaultPlayerWorm(scene: GameScene, x: number = 0, y: number = 0): WormState {
+        const color = 0xaaff66;
+        const strategy = new PlayerMovementStrategy();
+        const wormState = new WormState(color, strategy);
+        this.initWormState(wormState, x, y, scene);
+        if (wormState.segments.length > 0) {
+            wormState.segments[0].setData("wormType", WormType.Player);
+        }
+        return wormState;
+    }
 
-    private createDefaultWorm(type: WormType): WormState {
+    private createDefaultBotWorm(botType: BotType, scene: GameScene, x: number = 0, y: number = 0): WormState {
         let color: number;
         let strategy;
-        switch (type) {
-            case "player":
-                color = 0xaaff66;
-                strategy = new PlayerMovementStrategy();
-                break;
-            case "playerTrackerBot":
+        switch (botType) {
+            case BotType.PlayerTracker:
                 color = 0xff6666;
                 strategy = new TrackPlayerMovementStrategy();
                 break;
-            case "foodSeekerBot":
+            case BotType.FoodSeeker:
                 color = 0x6666ff;
                 strategy = new SeekFoodMovementStrategy();
                 break;
             default:
-                throw new Error("Unknown WormType");
+                // Exhaustiveness check to ensure all cases are handled.
+                ((_: never) => {
+                    throw new Error(`Unknown BotType: ${_}`);
+                })(botType);
         }
-        return new WormState(color, strategy);
+        const wormState = new WormState(color, strategy);
+        this.initWormState(wormState, x, y, scene);
+        if (wormState.segments.length > 0) {
+            wormState.segments[0].setData("wormType", WormType.Bot);
+            wormState.segments[0].setData("botType", botType);
+        }
+        return wormState;
     }
 
     /**
-     * WormType에 따라 WormState를 큐에서 꺼내 재사용하거나, 없으면 새로 생성합니다.
+     * Player Worm 생성
      */
-    public spawnWorm(scene: GameScene, type: WormType, x: number, y: number): WormState {
-        let wormState = this.wormQueues[type].shift();
+    public spawnPlayerWorm(scene: GameScene, x: number, y: number): WormState {
+        let wormState = this.wormQueues[WormType.Player].shift();
         if (!wormState) {
-            wormState = this.createDefaultWorm(type);
+            wormState = this.createDefaultPlayerWorm(scene, x, y);
+        } else {
+            // 세그먼트 위치만 재설정
+            for (let i = 0; i < wormState.segments.length; i++) {
+                const c = wormState.segments[i];
+                c.x = x;
+                c.y = y + i * GAME_CONSTANTS.SEGMENT_SPACING;
+            }
         }
 
-        // wormState를 초기화 (위치, 세그먼트 등)
-        wormState.segments = [];
+        // 세그먼트 활성화
+        for (const segment of wormState.segments) {
+            segment.visible = true;
+            segment.active = true;
+            if (segment.body) segment.body.enable = true;
+        }
+
+        // 개발 모드에서만 디버깅 로그 출력
+        if (import.meta.env.MODE === "development") {
+            console.debug("[spawnPlayerWorm] 큐 상태:\n" + this.getQueueDebugInfo());
+        }
+
+        return wormState;
+    }
+
+    /**
+     * Bot Worm 생성
+     */
+    public spawnBotWorm(scene: GameScene, botType: BotType, x: number, y: number): WormState {
+        let wormState = this.wormQueues[WormType.Bot][botType].shift();
+        if (!wormState) {
+            wormState = this.createDefaultBotWorm(botType, scene, x, y);
+        } else {
+            // 세그먼트 위치만 재설정
+            for (let i = 0; i < wormState.segments.length; i++) {
+                const c = wormState.segments[i];
+                c.x = x;
+                c.y = y + i * GAME_CONSTANTS.SEGMENT_SPACING;
+            }
+        }
+
+        // 세그먼트 활성화
+        for (const segment of wormState.segments) {
+            segment.visible = true;
+            segment.active = true;
+            if (segment.body) segment.body.enable = true;
+        }
+
+        // 개발 모드에서만 디버깅 로그 출력
+        if (import.meta.env.MODE === "development") {
+            console.debug(`[spawnBotWorm:${botType}] 큐 상태:\n` + this.getQueueDebugInfo());
+        }
+
+        return wormState;
+    }
+
+    /**
+     * wormState를 초기화 (위치, 세그먼트 등)
+     */
+    private initWormState(wormState: WormState, x: number, y: number, scene: GameScene) {
         wormState.path = [];
         wormState.lastVel.set(0, 1);
         wormState.lastHead.set(x, y);
         wormState.nextTarget = null;
 
-        // 세그먼트 생성
-        for (let i = 0; i < GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT; i++) {
-            const c = scene.add.circle(
-                x,
-                y + i * GAME_CONSTANTS.SEGMENT_SPACING,
-                GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS,
-                wormState.segmentColor,
-            );
-            c.setStrokeStyle(4, 0x333333);
+        // 세그먼트가 이미 존재하면, default count만큼만 남기고 나머지는 제거
+        if (wormState.segments && wormState.segments.length > 0) {
+            // 남길 세그먼트만 slice, 나머지는 destroy
+            const keepCount = GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT;
+            for (let i = keepCount; i < wormState.segments.length; i++) {
+                wormState.segments[i].destroy();
+            }
+            wormState.segments = wormState.segments.slice(0, keepCount);
+            // 위치 재설정
+            for (let i = 0; i < wormState.segments.length; i++) {
+                const c = wormState.segments[i];
+                c.x = x;
+                c.y = y + i * GAME_CONSTANTS.SEGMENT_SPACING;
+
+                // 생성했을 때 처럼 body값 초기화
+                c.setRadius(GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS);
+                c.body.setCircle(GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS);
+            }
+        } else {
+            // 세그먼트가 없으면 새로 생성
+            wormState.segments = [];
+            for (let i = 0; i < GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT; i++) {
+                const c = scene.add.circle(
+                    x,
+                    y + i * GAME_CONSTANTS.SEGMENT_SPACING,
+                    GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS,
+                    wormState.segmentColor,
+                );
+                c.setStrokeStyle(4, 0x333333);
+                scene.physics.add.existing(c, false);
+                c.body.setCircle(GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS);
+
+                wormState.segments.push(c);
+            }
+        }
+
+        // 공통 로직: 스타일, depth, physics body 등
+        for (let i = 0; i < wormState.segments.length; i++) {
+            const c = wormState.segments[i];
             c.setDepth(GAME_CONSTANTS.ZORDER_SEGMENT - i);
-            wormState.segments.push(c);
-            scene.physics.add.existing(c, false);
             c.body.setCircle(GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS);
         }
 
@@ -79,22 +214,61 @@ export default class WormSpawner {
         for (let i = 0; i < GAME_CONSTANTS.SEGMENT_SPACING * GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT; i++) {
             wormState.path.push(new Phaser.Math.Vector2(wormState.lastHead.x, wormState.lastHead.y + i));
         }
-
-        return wormState;
     }
 
     /**
      * 사용이 끝난 wormState를 다시 큐에 반환
      */
-    public releaseWorm(type: WormType, worm: WormState) {
-        // 세그먼트(Phaser 오브젝트) 정리
-        for (const segment of worm.segments) {
-            segment.destroy();
-        }
-        worm.segments = [];
-        worm.path = [];
-        // 필요하다면 기타 상태도 초기화
+    public releasePlayerWorm(worm: WormState, scene: GameScene) {
+        // wormState를 초기화 (위치, 세그먼트 등)
+        this.initWormState(worm, 0, 0, scene);
 
-        this.wormQueues[type].push(worm);
+        // 모든 세그먼트 비활성화
+        for (const segment of worm.segments) {
+            segment.visible = false;
+            segment.active = false;
+            if (segment.body) segment.body.enable = false;
+        }
+        this.wormQueues[WormType.Player].push(worm);
+
+        // 개발 모드에서만 디버깅 로그 출력
+        if (import.meta.env.MODE === "development") {
+            console.debug("[releasePlayerWorm] 큐 상태:\n" + this.getQueueDebugInfo());
+        }
+    }
+
+    public releaseBotWorm(botType: BotType, worm: WormState, scene: GameScene) {
+        const queue = this.wormQueues[WormType.Bot][botType];
+        if (!queue) {
+            console.error("releaseBotWorm: botType 큐가 존재하지 않습니다.", botType, this.wormQueues[WormType.Bot]);
+            return;
+        }
+        // wormState를 초기화 (위치, 세그먼트 등)
+        this.initWormState(worm, 0, 0, scene);
+
+        // 모든 세그먼트 비활성화
+        for (const segment of worm.segments) {
+            segment.visible = false;
+            segment.active = false;
+            if (segment.body) segment.body.enable = false;
+        }
+        queue.push(worm);
+
+        // 개발 모드에서만 디버깅 로그 출력
+        if (import.meta.env.MODE === "development") {
+            console.debug(`[releaseBotWorm:${botType}] 큐 상태:\n` + this.getQueueDebugInfo());
+        }
+    }
+
+    /**
+     * 디버깅용: 현재 풀 상태를 문자열로 반환
+     */
+    public getQueueDebugInfo(): string {
+        return [
+            `[WormSpawner Pool]`,
+            `Player: ${this.wormQueues[WormType.Player].length}`,
+            `Bot-PlayerTracker: ${this.wormQueues[WormType.Bot][BotType.PlayerTracker].length}`,
+            `Bot-FoodSeeker: ${this.wormQueues[WormType.Bot][BotType.FoodSeeker].length}`,
+        ].join('\n');
     }
 }

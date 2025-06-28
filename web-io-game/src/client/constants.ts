@@ -3,6 +3,9 @@ export const GAME_CONSTANTS = {
     MAP_WIDTH: 15000,
     MAP_HEIGHT: 10000,
 
+    // Bot
+    BOT_COUNT: 6, // 맵에 생성될 봇 개수
+
     // Segment
     SEGMENT_SPACING: 14, // 세그먼트 간 고정 거리(px)
     SEGMENT_DEFAULT_COUNT: 5, // 기본 세그먼트(원) 개수

@@ -1,7 +1,15 @@
 import { GAME_CONSTANTS } from "./constants";
 import { MovementStrategy } from "./MovementStrategy";
 
-export type WormType = "player" | "playerTrackerBot" | "foodSeekerBot";
+export enum WormType {
+    Player = 0,
+    Bot = 1,
+}
+
+export enum BotType {
+    PlayerTracker = 0,
+    FoodSeeker = 1,
+}
 
 export class WormState {
     public lastVel: Phaser.Math.Vector2;
