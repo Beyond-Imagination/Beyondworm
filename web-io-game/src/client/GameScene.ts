@@ -40,7 +40,10 @@ export default class GameScene extends Phaser.Scene {
         const MapWidth = GameSettings.instance.get("MAP_WIDTH");
         const MapHeight = GameSettings.instance.get("MAP_HEIGHT");
 
-        // ① 기본 지렁이 생성 (스포너에서 꺼내서 사용)
+        // 스포너 초기화
+        this.wormSpawner.initialize(this);
+
+        // 기본 지렁이 생성 (스포너에서 꺼내서 사용)
         this.worms = [];
         this.playerState = this.wormSpawner.spawnPlayerWorm(
             this,
@@ -70,13 +73,13 @@ export default class GameScene extends Phaser.Scene {
             this.wormHeadsGroup.add(head);
         }
 
-        // ② 먹이 여러 개 랜덤 위치에 소환
+        // 먹이 여러 개 랜덤 위치에 소환
         this.updateFoods();
 
-        // ③ 플레이어 Front 초기화
+        // 플레이어 Front 초기화
         this.InitializePlayer();
 
-        // ④ UIScene이 실행 중이 아니면 실행
+        // UIScene이 실행 중이 아니면 실행
         if (!this.scene.isActive("UIScene")) {
             this.scene.launch("UIScene");
         }
@@ -327,10 +330,10 @@ export default class GameScene extends Phaser.Scene {
             return; // 알 수 없는 벌레 타입이면 종료
         }
 
-        // 1. 머리 제거
-        this.wormHeadsGroup.remove(worm.segments[0], true, true);
+        // 머리 제거
+        this.wormHeadsGroup.remove(worm.segments[0], false, false);
 
-        // 2. 먹은 먹이 수만큼 시체 경로를 따라 먹이 생성
+        // 먹은 먹이 수만큼 시체 경로를 따라 먹이 생성
         const foodToDrop = worm.segments.length - GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT;
         if (foodToDrop > 0) {
             const path = worm.path;
@@ -343,27 +346,22 @@ export default class GameScene extends Phaser.Scene {
             }
         }
 
-        // 3. 모든 세그먼트 제거
-        for (const segment of worm.segments) {
-            segment.destroy();
-        }
-
-        // 4. worms 배열에서 제거
+        // worms 배열에서 제거
         const idx = this.worms.indexOf(worm);
         if (idx !== -1) {
             this.worms.splice(idx, 1);
         }
 
-        // 5. 스포너에 반환 및 리스폰
+        // 스포너에 반환 및 리스폰
         let newWorm: WormState;
         if (targetWormType === WormType.Player) {
-            this.wormSpawner.releasePlayerWorm(worm);
+            this.wormSpawner.releasePlayerWorm(worm, this);
 
             // 플레이어 리스폰
             newWorm = this.wormSpawner.spawnPlayerWorm(
                 this,
                 Phaser.Math.Between(100, GAME_CONSTANTS.MAP_WIDTH - 100),
-                Phaser.Math.Between(100, GAME_CONSTANTS.MAP_HEIGHT - 100),
+                Phaser.Math.Between(100, GAME_CONSTANTS.MAP_HEIGHT - 100)
             );
             if (!newWorm) {
                 console.error("Failed to respawn player worm.");
@@ -383,14 +381,14 @@ export default class GameScene extends Phaser.Scene {
                 }
             }
         } else if (targetWormType === WormType.Bot) {
-            this.wormSpawner.releaseBotWorm(targetBotType, worm);
+            this.wormSpawner.releaseBotWorm(targetBotType, worm, this);
 
             // 봇 리스폰
             newWorm = this.wormSpawner.spawnBotWorm(
                 this,
                 targetBotType,
                 Phaser.Math.Between(100, GAME_CONSTANTS.MAP_WIDTH - 100),
-                Phaser.Math.Between(100, GAME_CONSTANTS.MAP_HEIGHT - 100),
+                Phaser.Math.Between(100, GAME_CONSTANTS.MAP_HEIGHT - 100)
             );
             if (!newWorm) {
                 console.error("Failed to respawn bot worm.");

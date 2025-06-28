@@ -77,6 +77,22 @@ export default class UIScene extends Phaser.Scene {
         const lines = Object.entries(settings)
             .map(([k, v]) => `${k}: ${v}`)
             .join("\n");
-        this.debugText.setText(lines);
+
+        // WormSpawner 풀 상태 출력
+        const gameScene = this.scene.get("GameScene") as import("./GameScene").default;
+        let poolInfo = "";
+        if (gameScene && gameScene.wormSpawner) {
+            const spawner = gameScene.wormSpawner as any;
+            poolInfo += "\n[Worm Pool]\n";
+            poolInfo += `Player: ${spawner.wormQueues?.[0]?.length ?? "-"}\n`;
+            poolInfo += `Bot-PlayerTracker: ${spawner.wormQueues?.[1]?.[0]?.length ?? "-"}\n`;
+            poolInfo += `Bot-FoodSeeker: ${spawner.wormQueues?.[1]?.[1]?.length ?? "-"}\n`;
+            // cacheHit/cacheMiss 등도 추가하고 싶으면 WormSpawner에 public으로 선언 필요
+            if (spawner.cacheHit !== undefined && spawner.cacheMiss !== undefined) {
+                poolInfo += `cacheHit: ${spawner.cacheHit}, cacheMiss: ${spawner.cacheMiss}\n`;
+            }
+        }
+
+        this.debugText.setText(lines + poolInfo);
     }
 }
