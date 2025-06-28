@@ -82,7 +82,10 @@ export default class WormSpawner {
                 strategy = new SeekFoodMovementStrategy();
                 break;
             default:
-                throw new Error("Unknown BotType");
+                // Exhaustiveness check to ensure all cases are handled.
+                ((_: never) => {
+                    throw new Error(`Unknown BotType: ${_}`);
+                })(botType);
         }
         const wormState = new WormState(color, strategy);
         this.initWormState(wormState, x, y, scene);
