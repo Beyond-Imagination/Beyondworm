@@ -263,16 +263,15 @@ export default class WormSpawner {
      * 디버깅용: 현재 풀 상태를 문자열로 반환
      */
     public getQueueDebugInfo(): string {
-        const player = this.wormQueues[WormType.Player];
-        const botQueues = this.wormQueues[WormType.Bot] as Record<string, WormState[]>;
-        const tracker = botQueues[BotType.PlayerTracker as any];
-        const foodSeeker = botQueues[BotType.FoodSeeker as any];
-
+        const playerQueue = this.wormQueues[WormType.Player];
+        const botQueues = this.wormQueues[WormType.Bot];
+        const trackerQueue = botQueues?.[BotType.PlayerTracker];
+        const foodSeekerQueue = botQueues?.[BotType.FoodSeeker];
         return [
             `[WormSpawner Pool]`,
-            `Player: ${Array.isArray(player) ? player.length : "-"}`,
-            `Bot-PlayerTracker: ${Array.isArray(tracker) ? tracker.length : "-"}`,
-            `Bot-FoodSeeker: ${Array.isArray(foodSeeker) ? foodSeeker.length : "-"}`,
+            `Player: ${playerQueue?.length ?? "-"}`,
+            `Bot-PlayerTracker: ${trackerQueue?.length ?? "-"}`,
+            `Bot-FoodSeeker: ${foodSeekerQueue?.length ?? "-"}`,
         ].join("\n");
     }
 }
