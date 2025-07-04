@@ -16,7 +16,7 @@ module.exports = tseslint.config(
         },
     },
     {
-        files: ["src/client/**/*.ts"],
+        files: ["apps/client/**/*.ts"],
         languageOptions: {
             globals: {
                 ...globals.browser,

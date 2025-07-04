@@ -21,8 +21,7 @@ export default class WormSpawner {
     };
     private readonly cacheSize = 0;
 
-    constructor() {
-    }
+    constructor() {}
 
     public initialize(scene: GameScene) {
         // Player용 미리 생성
@@ -84,7 +83,7 @@ export default class WormSpawner {
             default:
                 // Exhaustiveness check to ensure all cases are handled.
                 ((_: never) => {
-                    throw new Error(`Unknown BotType: ${_}`);
+                    throw new Error(`Unknown BotType: ${String(_)}`);
                 })(botType);
         }
         const wormState = new WormState(color, strategy);
@@ -264,11 +263,16 @@ export default class WormSpawner {
      * 디버깅용: 현재 풀 상태를 문자열로 반환
      */
     public getQueueDebugInfo(): string {
+        const player = this.wormQueues[WormType.Player];
+        const botQueues = this.wormQueues[WormType.Bot] as Record<string, WormState[]>;
+        const tracker = botQueues[BotType.PlayerTracker as any];
+        const foodSeeker = botQueues[BotType.FoodSeeker as any];
+
         return [
             `[WormSpawner Pool]`,
-            `Player: ${this.wormQueues[WormType.Player].length}`,
-            `Bot-PlayerTracker: ${this.wormQueues[WormType.Bot][BotType.PlayerTracker].length}`,
-            `Bot-FoodSeeker: ${this.wormQueues[WormType.Bot][BotType.FoodSeeker].length}`,
-        ].join('\n');
+            `Player: ${Array.isArray(player) ? player.length : "-"}`,
+            `Bot-PlayerTracker: ${Array.isArray(tracker) ? tracker.length : "-"}`,
+            `Bot-FoodSeeker: ${Array.isArray(foodSeeker) ? foodSeeker.length : "-"}`,
+        ].join("\n");
     }
 }
