@@ -12,13 +12,14 @@ app.use(express.json());
 
 const httpServer = createServer(app);
 const io = new SocketIOServer(httpServer, {
-    cors: { origin: "*" }, // 개발 단계용
+    cors: { origin: process.env.CORS_ORIGIN }, // .env 파일에 CORS_ORIGIN="http://your.frontend.domain" 형식으로 설정
 });
 
 io.on("connection", (socket: Socket) => {
     console.log("🔥 Client connected", socket.id);
 
     // init이라는 키를 클라이언트가 listen하고 있으면 초기 정보 전송
+    // listen하는 시간을 고려하여 약간의 딜레이를 줌
     setTimeout(() => socket.emit("init", { id: socket.id }), 100);
 
     socket.on("disconnect", () => {
@@ -28,7 +29,7 @@ io.on("connection", (socket: Socket) => {
 
 const TICK_MS = 1000 / 60;
 
-setInterval(gameLoop, TICK_MS);
+setTimeout(gameLoop, TICK_MS);
 
 function gameLoop(): void {
     updateWorld();
