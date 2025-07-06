@@ -361,7 +361,7 @@ export default class GameScene extends Phaser.Scene {
             newWorm = this.wormSpawner.spawnPlayerWorm(
                 this,
                 Phaser.Math.Between(100, GAME_CONSTANTS.MAP_WIDTH - 100),
-                Phaser.Math.Between(100, GAME_CONSTANTS.MAP_HEIGHT - 100)
+                Phaser.Math.Between(100, GAME_CONSTANTS.MAP_HEIGHT - 100),
             );
             if (!newWorm) {
                 console.error("Failed to respawn player worm.");
@@ -388,7 +388,7 @@ export default class GameScene extends Phaser.Scene {
                 this,
                 targetBotType,
                 Phaser.Math.Between(100, GAME_CONSTANTS.MAP_WIDTH - 100),
-                Phaser.Math.Between(100, GAME_CONSTANTS.MAP_HEIGHT - 100)
+                Phaser.Math.Between(100, GAME_CONSTANTS.MAP_HEIGHT - 100),
             );
             if (!newWorm) {
                 console.error("Failed to respawn bot worm.");
