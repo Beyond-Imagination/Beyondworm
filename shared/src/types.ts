@@ -1,7 +1,15 @@
+// 공통 타입 예시
+
 export interface Player {
     id: string;
-    name: string;
+    nickname: string;
     score: number;
+}
+
+export interface GameRoom {
+    id: string;
+    players: Player[];
+    status: "waiting" | "playing" | "finished";
 }
 
 export interface GameState {
