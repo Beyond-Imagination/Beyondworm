@@ -48,7 +48,7 @@ app.get('/servers', (req: Request, res: Response) => {
 });
 
 // 오래된 서버를 주기적으로 정리하는 로직
-setInterval(() => {
+const cleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const [serverId, serverInfo] of serverCache.entries()) {
     if (now - serverInfo.lastSeen > SERVER_TIMEOUT) {
@@ -57,6 +57,16 @@ setInterval(() => {
     }
   }
 }, 10000); // 10초마다 체크
+
+// 서버 종료 시 interval 정리
+function gracefulShutdown() {
+  clearInterval(cleanupInterval);
+  console.log("Interval cleared. Shutting down server.");
+  process.exit(0);
+}
+
+process.on("SIGINT", gracefulShutdown);
+process.on("SIGTERM", gracefulShutdown);
 
 app.listen(PORT, () => {
   console.log(`Lobby server is running on port ${PORT}`);
