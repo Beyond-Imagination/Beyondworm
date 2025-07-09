@@ -10,7 +10,7 @@
         "lint": "eslint . --fix && prettier --write ."
     },
     "dependencies": {
-        "@beyondworm/shared": "*",
+        "@beyondworm/shared": "file:../shared",
         "express": "^4.18.2"
     },
     "devDependencies": {
