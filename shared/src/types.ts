@@ -22,3 +22,9 @@ export interface Action {
     type: string;
     payload: any;
 }
+
+export interface GameServer {
+    address: string;
+    playerCount: number;
+    lastSeen: number;
+}
