@@ -19,21 +19,21 @@ const SERVER_TIMEOUT = 30000; // 30초
 
 // 1) 게임 서버 등록 및 정보 업데이트 엔드포인트
 app.post('/server/register', (req: Request, res: Response) => {
-  const { serverId, address, playerCount } = req.body;
+  const { serverId, address } = req.body;
 
-  if (!serverId || !address || playerCount === undefined) {
+  if (!serverId || !address) {
     return res.status(400).json({ message: 'Missing required server information: serverId, address, playerCount' });
   }
 
   const now = Date.now();
   const serverInfo: GameServer = {
     address,
-    playerCount,
+    playerCount: 0,
     lastSeen: now,
   };
 
   serverCache.set(serverId, serverInfo);
-  console.log(`Server registered/updated: ${serverId} at ${address} with ${playerCount} players.`);
+  console.log(`Server registered/updated: ${serverId} at ${address}.`);
   
   res.status(200).json({ message: 'Server information received' });
 });
