@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import express from "express";
 import { createServer } from "node:http";
 import { Server as SocketIOServer, Socket } from "socket.io";
-import { GAME_CONSTANTS } from "@beyondworm/shared";
+import { GAME_CONSTANTS, Player } from "@beyondworm/shared";
 
 dotenv.config(); // .env 로드
 
@@ -17,22 +17,10 @@ const io = new SocketIOServer(httpServer, {
 });
 
 /**
- * 서버에서 관리할 플레이어의 상태 정보입니다.
- */
-interface PlayerState {
-    id: string;
-    worm: {
-        x: number;
-        y: number;
-        direction: { x: number; y: number }; // 지렁이의 현재 방향 벡터
-    };
-}
-
-/**
  * 현재 접속해 있는 모든 플레이어의 상태를 저장합니다.
  * Key: socket.id, Value: PlayerState
  */
-const players = new Map<string, PlayerState>();
+const players = new Map<string, Player>();
 
 // --- Socket.IO 이벤트 핸들러 --------------------------------------------------
 
@@ -40,8 +28,10 @@ io.on("connection", (socket: Socket) => {
     console.log("🔥 Client connected:", socket.id);
 
     // 1. 새로운 플레이어 생성 및 초기 상태 설정
-    const newPlayer: PlayerState = {
+    const newPlayer: Player = {
         id: socket.id,
+        nickname: "test",
+        score: 123,
         worm: {
             x: Math.floor(Math.random() * (GAME_CONSTANTS.MAP_WIDTH - 100)) + 100,
             y: Math.floor(Math.random() * (GAME_CONSTANTS.MAP_HEIGHT - 100)) + 100,
