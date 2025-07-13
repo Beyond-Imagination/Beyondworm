@@ -22,7 +22,7 @@ app.post("/server/register", (req: Request, res: Response) => {
     const { serverId, address } = req.body as { serverId: string; address: string };
 
     if (!serverId || !address) {
-        return res.status(400).json({ message: "Missing required server information: serverId, address, playerCount" });
+        return res.status(400).json({ message: "Missing required server information: serverId, address" });
     }
 
     const now = Date.now();
