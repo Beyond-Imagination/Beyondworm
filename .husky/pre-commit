@@ -1,3 +1,5 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 cd web-io-game && npm run lint
+cd ../game-server && npm run lint
+cd ../lobby-server && npm run lint
