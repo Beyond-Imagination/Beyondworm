@@ -1,4 +1,4 @@
-import { GAME_CONSTANTS } from "./constants";
+import { FE_CONSTANTS } from "./constants";
 import { WormState, WormType, BotType } from "./WormState";
 import { PlayerMovementStrategy, TrackPlayerMovementStrategy, SeekFoodMovementStrategy } from "./MovementStrategy";
 import GameScene from "./GameScene";
@@ -107,7 +107,7 @@ export default class WormSpawner {
             for (let i = 0; i < wormState.segments.length; i++) {
                 const c = wormState.segments[i];
                 c.x = x;
-                c.y = y + i * GAME_CONSTANTS.SEGMENT_SPACING;
+                c.y = y + i * FE_CONSTANTS.SEGMENT_SPACING;
             }
         }
 
@@ -138,7 +138,7 @@ export default class WormSpawner {
             for (let i = 0; i < wormState.segments.length; i++) {
                 const c = wormState.segments[i];
                 c.x = x;
-                c.y = y + i * GAME_CONSTANTS.SEGMENT_SPACING;
+                c.y = y + i * FE_CONSTANTS.SEGMENT_SPACING;
             }
         }
 
@@ -169,7 +169,7 @@ export default class WormSpawner {
         // 세그먼트가 이미 존재하면, default count만큼만 남기고 나머지는 제거
         if (wormState.segments && wormState.segments.length > 0) {
             // 남길 세그먼트만 slice, 나머지는 destroy
-            const keepCount = GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT;
+            const keepCount = FE_CONSTANTS.SEGMENT_DEFAULT_COUNT;
             for (let i = keepCount; i < wormState.segments.length; i++) {
                 wormState.segments[i].destroy();
             }
@@ -178,25 +178,25 @@ export default class WormSpawner {
             for (let i = 0; i < wormState.segments.length; i++) {
                 const c = wormState.segments[i];
                 c.x = x;
-                c.y = y + i * GAME_CONSTANTS.SEGMENT_SPACING;
+                c.y = y + i * FE_CONSTANTS.SEGMENT_SPACING;
 
                 // 생성했을 때 처럼 body값 초기화
-                c.setRadius(GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS);
-                c.body.setCircle(GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS);
+                c.setRadius(FE_CONSTANTS.SEGMENT_DEFAULT_RADIUS);
+                c.body.setCircle(FE_CONSTANTS.SEGMENT_DEFAULT_RADIUS);
             }
         } else {
             // 세그먼트가 없으면 새로 생성
             wormState.segments = [];
-            for (let i = 0; i < GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT; i++) {
+            for (let i = 0; i < FE_CONSTANTS.SEGMENT_DEFAULT_COUNT; i++) {
                 const c = scene.add.circle(
                     x,
-                    y + i * GAME_CONSTANTS.SEGMENT_SPACING,
-                    GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS,
+                    y + i * FE_CONSTANTS.SEGMENT_SPACING,
+                    FE_CONSTANTS.SEGMENT_DEFAULT_RADIUS,
                     wormState.segmentColor,
                 );
                 c.setStrokeStyle(4, 0x333333);
                 scene.physics.add.existing(c, false);
-                c.body.setCircle(GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS);
+                c.body.setCircle(FE_CONSTANTS.SEGMENT_DEFAULT_RADIUS);
 
                 wormState.segments.push(c);
             }
@@ -205,12 +205,12 @@ export default class WormSpawner {
         // 공통 로직: 스타일, depth, physics body 등
         for (let i = 0; i < wormState.segments.length; i++) {
             const c = wormState.segments[i];
-            c.setDepth(GAME_CONSTANTS.ZORDER_SEGMENT - i);
-            c.body.setCircle(GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS);
+            c.setDepth(FE_CONSTANTS.ZORDER_SEGMENT - i);
+            c.body.setCircle(FE_CONSTANTS.SEGMENT_DEFAULT_RADIUS);
         }
 
         wormState.lastHead.set(wormState.segments[0].x, wormState.segments[0].y);
-        for (let i = 0; i < GAME_CONSTANTS.SEGMENT_SPACING * GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT; i++) {
+        for (let i = 0; i < FE_CONSTANTS.SEGMENT_SPACING * FE_CONSTANTS.SEGMENT_DEFAULT_COUNT; i++) {
             wormState.path.push(new Phaser.Math.Vector2(wormState.lastHead.x, wormState.lastHead.y + i));
         }
     }

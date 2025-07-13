@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { GAME_CONSTANTS } from "./constants";
+import { FE_CONSTANTS } from "./constants";
 import GameSettings from "./GameSettings";
 
 export default class UIScene extends Phaser.Scene {
@@ -60,7 +60,7 @@ export default class UIScene extends Phaser.Scene {
         const gameScene = this.scene.get("GameScene") as import("./GameScene").default;
         if (gameScene && Array.isArray(gameScene.playerState.segments)) {
             // 먹은 먹이 수 = 현재 세그먼트 개수 - 기본 세그먼트 개수
-            const defaultCount = GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT ?? 0;
+            const defaultCount = FE_CONSTANTS.SEGMENT_DEFAULT_COUNT ?? 0;
             const eatenCount = (gameScene.playerState.segments?.length ?? 0) - defaultCount;
             this.foodText.setText(`🍎 ${eatenCount}`);
         }

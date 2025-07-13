@@ -1,9 +1,11 @@
 import Phaser from "phaser";
 import GameSettings from "./GameSettings";
 import Food from "./Food";
-import { GAME_CONSTANTS } from "./constants";
+import { FE_CONSTANTS } from "./constants";
 import { WormState, WormType, BotType } from "./WormState";
 import WormSpawner from "./WormSpawner";
+import GameClient from "./GameClient";
+import { GAME_CONSTANTS } from "@beyondworm/shared";
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -11,6 +13,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     public wormSpawner = new WormSpawner();
+    private gameClient!: GameClient;
 
     // foods 속성을 public 또는 getter로 만들어 전략에서 접근 가능하게 하거나, calculateDesiredDirection에 전달해야 함.
     // 여기서는 GameScene의 인스턴스를 전략에 넘겨주고, (scene as any).foods로 접근하는 방식을 사용.
@@ -30,6 +33,10 @@ export default class GameScene extends Phaser.Scene {
     }
 
     create() {
+        // 서버 연결
+        this.gameClient = new GameClient(this);
+        this.gameClient.startSendingDirection();
+
         // 개발 환경에서만 치트 등록
         if (import.meta.env.MODE === "development") {
             import("./Cheat").then((mod) => {
@@ -37,8 +44,8 @@ export default class GameScene extends Phaser.Scene {
             });
         }
 
-        const MapWidth = GameSettings.instance.get("MAP_WIDTH");
-        const MapHeight = GameSettings.instance.get("MAP_HEIGHT");
+        const MapWidth = GAME_CONSTANTS.MAP_WIDTH;
+        const MapHeight = GAME_CONSTANTS.MAP_HEIGHT;
 
         // 스포너 초기화
         this.wormSpawner.initialize(this);
@@ -53,7 +60,7 @@ export default class GameScene extends Phaser.Scene {
         this.worms.push(this.playerState);
 
         const botTypeCount = Object.keys(BotType).filter((key) => isNaN(Number(key))).length; // 숫자 키(역방향 매핑) 제외
-        for (let i = 0; i < GAME_CONSTANTS.BOT_COUNT; i++) {
+        for (let i = 0; i < FE_CONSTANTS.BOT_COUNT; i++) {
             const randomType = Math.floor(Math.random() * botTypeCount) as BotType;
             const bot = this.wormSpawner.spawnBotWorm(
                 this,
@@ -135,7 +142,7 @@ export default class GameScene extends Phaser.Scene {
                 const newRadius = Phaser.Math.Linear(
                     seg.radius,
                     wormState.targetSegmentRadius,
-                    GAME_CONSTANTS.CAMERA_LERP_SPEED,
+                    FE_CONSTANTS.CAMERA_LERP_SPEED,
                 );
                 seg.setRadius(newRadius);
                 seg.body.setCircle(newRadius);
@@ -165,7 +172,7 @@ export default class GameScene extends Phaser.Scene {
      */
     private InitializePlayer() {
         // camera setting
-        this.setupCamera(this.playerState.segments[0], GAME_CONSTANTS.MAP_WIDTH, GAME_CONSTANTS.MAP_HEIGHT);
+        this.setupCamera(this.playerState.segments[0], GAME_CONSTANTS.MAP_WIDTH, FE_CONSTANTS.MAP_HEIGHT);
     }
 
     /**
@@ -176,7 +183,7 @@ export default class GameScene extends Phaser.Scene {
      */
     private setupCamera(target: Phaser.GameObjects.GameObject, width: number, height: number) {
         this.cameras.main.setBounds(0, 0, width, height);
-        this.cameras.main.startFollow(target, true, GAME_CONSTANTS.CAMERA_LERP_SPEED, GAME_CONSTANTS.CAMERA_LERP_SPEED);
+        this.cameras.main.startFollow(target, true, FE_CONSTANTS.CAMERA_LERP_SPEED, FE_CONSTANTS.CAMERA_LERP_SPEED);
         this.cameras.main.setZoom(1); // 필요시 zoom 값 조정
     }
 
@@ -196,11 +203,11 @@ export default class GameScene extends Phaser.Scene {
         const newSegment = this.add.circle(
             lastSegment.x,
             lastSegment.y,
-            GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS,
+            FE_CONSTANTS.SEGMENT_DEFAULT_RADIUS,
             worm.segmentColor,
         );
         newSegment.setStrokeStyle(4, 0x333333);
-        newSegment.setDepth(GAME_CONSTANTS.ZORDER_SEGMENT - targetSegments.length);
+        newSegment.setDepth(FE_CONSTANTS.ZORDER_SEGMENT - targetSegments.length);
 
         // 새 세그먼트에 physics body 부여
         this.physics.add.existing(newSegment, false);
@@ -209,8 +216,8 @@ export default class GameScene extends Phaser.Scene {
 
         // 목표 세그먼트 반지름 계산 (먹이 먹은 수만큼 증가)
         worm.targetSegmentRadius =
-            GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS +
-            (targetSegments.length - GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT) * GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS;
+            FE_CONSTANTS.SEGMENT_DEFAULT_RADIUS +
+            (targetSegments.length - FE_CONSTANTS.SEGMENT_DEFAULT_COUNT) * FE_CONSTANTS.SEGMENT_GROWTH_RADIUS;
     }
 
     private updateFoods(
@@ -223,7 +230,7 @@ export default class GameScene extends Phaser.Scene {
         while (this.foods.length < GameSettings.instance.get("MINIMUM_FOOD_COUNT")) {
             const x = Phaser.Math.Between(minX, maxX);
             const y = Phaser.Math.Between(minY, maxY);
-            const food = new Food(this, x, y, GAME_CONSTANTS.FOOD_RADIUS, 0xff3333);
+            const food = new Food(this, x, y, FE_CONSTANTS.FOOD_RADIUS, 0xff3333);
             this.foods.push(food);
             // 그룹에 추가만 하면 overlap이 처리됨
             this.foodsGroup.add(food.sprite);
@@ -237,11 +244,11 @@ export default class GameScene extends Phaser.Scene {
 
         // 화면에 항상 같은 비율로 보이도록 zoom 계산
         // (세그먼트 반지름이 커져도 화면에서는 항상 같은 비율로 보이게 함)
-        const baseRadius = GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS;
+        const baseRadius = FE_CONSTANTS.SEGMENT_DEFAULT_RADIUS;
         const currentRadius = this.playerState.segments[0].radius; // 플레이어 기준
         const baseZoom = 1;
         const zoom = baseZoom * (baseRadius / currentRadius);
-        this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom, zoom, GAME_CONSTANTS.CAMERA_LERP_SPEED));
+        this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom, zoom, FE_CONSTANTS.CAMERA_LERP_SPEED));
     }
 
     private updateWorm(
@@ -274,8 +281,8 @@ export default class GameScene extends Phaser.Scene {
             wormState.lastHead.set(head.x, head.y);
         }
 
-        const baseSpacing = GAME_CONSTANTS.SEGMENT_SPACING;
-        const baseRadius = GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS;
+        const baseSpacing = FE_CONSTANTS.SEGMENT_SPACING;
+        const baseRadius = FE_CONSTANTS.SEGMENT_DEFAULT_RADIUS;
         const currentActualRadius = head.radius;
         const spacing = baseSpacing * (currentActualRadius / baseRadius);
 
@@ -297,7 +304,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     private handleSprinting(dt: number, wormState: WormState) {
-        if (wormState.segments.length <= GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT) {
+        if (wormState.segments.length <= FE_CONSTANTS.SEGMENT_DEFAULT_COUNT) {
             wormState.isSprinting = false;
             return; // 최소 길이 이하면 달리기 중지
         }
@@ -308,14 +315,14 @@ export default class GameScene extends Phaser.Scene {
             wormState.sprintFoodDropTimer -= GAME_CONSTANTS.SPRINT_FOOD_DROP_INTERVAL;
             const removed = wormState.segments.pop();
             if (removed) {
-                const food = new Food(this, removed.x, removed.y, GAME_CONSTANTS.FOOD_RADIUS, 0xff3333);
+                const food = new Food(this, removed.x, removed.y, FE_CONSTANTS.FOOD_RADIUS, 0xff3333);
                 this.foods.push(food);
                 this.foodsGroup.add(food.sprite);
                 removed.destroy();
                 wormState.targetSegmentRadius =
-                    GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS +
-                    (wormState.segments.length - GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT) *
-                        GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS;
+                    FE_CONSTANTS.SEGMENT_DEFAULT_RADIUS +
+                    (wormState.segments.length - FE_CONSTANTS.SEGMENT_DEFAULT_COUNT) *
+                        FE_CONSTANTS.SEGMENT_GROWTH_RADIUS;
             }
         }
     }
@@ -334,13 +341,13 @@ export default class GameScene extends Phaser.Scene {
         this.wormHeadsGroup.remove(worm.segments[0], false, false);
 
         // 먹은 먹이 수만큼 시체 경로를 따라 먹이 생성
-        const foodToDrop = worm.segments.length - GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT;
+        const foodToDrop = worm.segments.length - FE_CONSTANTS.SEGMENT_DEFAULT_COUNT;
         if (foodToDrop > 0) {
             const path = worm.path;
             const step = Math.max(1, Math.floor(path.length / foodToDrop));
             for (let i = 0; i < path.length; i += step) {
                 const position = path[i];
-                const food = new Food(this, position.x, position.y, GAME_CONSTANTS.FOOD_RADIUS, 0xff3333);
+                const food = new Food(this, position.x, position.y, FE_CONSTANTS.FOOD_RADIUS, 0xff3333);
                 this.foods.push(food);
                 this.foodsGroup.add(food.sprite);
             }

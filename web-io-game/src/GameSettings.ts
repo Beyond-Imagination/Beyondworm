@@ -1,6 +1,6 @@
-import { GAME_CONSTANTS } from "./constants";
+import { FE_CONSTANTS } from "./constants";
 
-export type GameSettingsType = typeof GAME_CONSTANTS;
+export type GameSettingsType = typeof FE_CONSTANTS;
 
 export default class GameSettings {
     private static _instance: GameSettings;
@@ -8,7 +8,7 @@ export default class GameSettings {
 
     private constructor() {
         // constants.ts의 값으로 초기화
-        this._settings = { ...GAME_CONSTANTS };
+        this._settings = { ...FE_CONSTANTS };
     }
 
     // 싱글턴 인스턴스 반환
