@@ -1,12 +1,13 @@
 {
-  "compilerOptions": {
-    "target": "ES6",
-    "module": "commonjs",
-    "declaration": true,
-    "outDir": "dist",
-    "rootDir": ".",
-    "strict": true,
-    "esModuleInterop": true
-  },
-  "include": ["*.ts"]
+    "compilerOptions": {
+        "target": "ES6",
+        "module": "commonjs",
+        "declaration": true,
+        "outDir": "dist",
+        "rootDir": "src",
+        "strict": true,
+        "esModuleInterop": true
+    },
+    "include": ["src/**/*.ts", "src/**/*.json"],
+    "exclude": ["node_modules"]
 }
