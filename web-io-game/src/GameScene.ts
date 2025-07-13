@@ -161,7 +161,10 @@ export default class GameScene extends Phaser.Scene {
 
     shutdown() {
         // Scene이 종료될 때 호출
-        // 등록된 키보드 이벤트 리스너 제거
+        // 1. GameClient 정리 (소켓 연결 해제, 타이머 제거 등)
+        this.gameClient.disconnect();
+
+        // 2. 등록된 키보드 이벤트 리스너 제거
         this.input.keyboard.off("keydown-SPACE");
         this.input.keyboard.off("keyup-SPACE");
     }
@@ -172,7 +175,7 @@ export default class GameScene extends Phaser.Scene {
      */
     private InitializePlayer() {
         // camera setting
-        this.setupCamera(this.playerState.segments[0], GAME_CONSTANTS.MAP_WIDTH, FE_CONSTANTS.MAP_HEIGHT);
+        this.setupCamera(this.playerState.segments[0], GAME_CONSTANTS.MAP_WIDTH, GAME_CONSTANTS.MAP_HEIGHT);
     }
 
     /**
