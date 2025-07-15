@@ -30,6 +30,9 @@ export default class GameScene extends Phaser.Scene {
     }
 
     create() {
+        // 트랜지션 효과를 위해 시작 시 투명하게 설정
+        this.cameras.main.setAlpha(0);
+
         // 개발 환경에서만 치트 등록
         if (import.meta.env.MODE === "development") {
             import("./Cheat").then((mod) => {
@@ -50,6 +53,7 @@ export default class GameScene extends Phaser.Scene {
             Phaser.Math.Between(100, MapWidth - 100),
             Phaser.Math.Between(100, MapHeight - 100),
         );
+        this.playerState.name = this.game.registry.get("username"); // 사용자 이름 설정
         this.worms.push(this.playerState);
 
         const botTypeCount = Object.keys(BotType).filter((key) => isNaN(Number(key))).length; // 숫자 키(역방향 매핑) 제외

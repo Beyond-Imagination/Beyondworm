@@ -4,6 +4,7 @@ import GameSettings from "./GameSettings";
 
 export default class UIScene extends Phaser.Scene {
     private foodText!: Phaser.GameObjects.Text;
+    private usernameText!: Phaser.GameObjects.Text; // 사용자 이름 텍스트 추가
 
     // 디버그 변수는 개발 환경에서만 선언
     private debugText?: Phaser.GameObjects.Text;
@@ -18,6 +19,18 @@ export default class UIScene extends Phaser.Scene {
     }
 
     create() {
+        // 트랜지션 효과를 위해 시작 시 투명하게 설정
+        this.cameras.main.setAlpha(0);
+
+        // 사용자 이름 표시
+        const username = this.game.registry.get("username");
+        this.usernameText = this.add
+            .text(20, 20, `ID: ${username}`, { font: "24px Arial", color: "#fff", fontStyle: "bold" })
+            .setOrigin(0, 0)
+            .setStroke("#222", 4)
+            .setShadow(2, 2, "#000", 4, true, true)
+            .setDepth(10000);
+
         // 화면 오른쪽 위에 텍스트 표시
         this.foodText = this.add
             .text(this.scale.width - 40, 20, "🍎 0", { font: "32px Arial", color: "#fff", fontStyle: "bold" })
