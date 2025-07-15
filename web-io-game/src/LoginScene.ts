@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import type { GameServer } from "@beyondworm/shared";
 
-const lobbyServerUrl = "http://localhost:3000"; // 임시 로비 서버 주소
+const lobbyServerUrl: string = import.meta.env.VITE_LOBBY_SERVER_URL;
 
 export default class LoginScene extends Phaser.Scene {
     private selectedServer: GameServer | null = null;
@@ -43,7 +43,12 @@ export default class LoginScene extends Phaser.Scene {
             //     return;
             // }
 
-            const username = usernameInput.value || "Player";
+            const username = usernameInput.value.trim();
+            if (!username) {
+                alert("유저 이름을 입력해주세요.");
+                usernameInput.focus();
+                return;
+            }
             this.game.registry.set("username", username);
             // TODO: 로비 서버 구현 후, 수정
             // this.game.registry.set("serverAddress", this.selectedServer.address);
