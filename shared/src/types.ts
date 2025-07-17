@@ -25,5 +25,5 @@ export interface GameState {
 
 export interface Action {
     type: string;
-    payload: any;
+    payload: unknown;
 }
