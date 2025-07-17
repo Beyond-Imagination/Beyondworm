@@ -1,5 +1,5 @@
-import { FE_CONSTANTS } from "./constants";
 import { MovementStrategy } from "./MovementStrategy";
+import { GAME_CONSTANTS } from "@beyondworm/shared";
 
 export enum WormType {
     Player = 0,
@@ -28,7 +28,7 @@ export class WormState {
     constructor(segmentColor: number, movementStrategy: MovementStrategy) {
         this.lastVel = new Phaser.Math.Vector2(0, 1); // 초기 방향은 아래로
         this.lastHead = new Phaser.Math.Vector2();
-        this.targetSegmentRadius = FE_CONSTANTS.SEGMENT_DEFAULT_RADIUS;
+        this.targetSegmentRadius = GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS;
         this.segments = [];
         this.path = [];
         this.segmentColor = segmentColor;
