@@ -2,6 +2,7 @@ import { GAME_CONSTANTS, Worm, WormType, BotType, WormSegment } from "@beyondwor
 import { MovementStrategy } from "../types/movement";
 import { FoodSeekerMovementStrategy } from "../strategies/FoodSeekerMovementStrategy";
 import { PlayerTrackerMovementStrategy } from "../strategies/PlayerTrackerMovementStrategy";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * 움직임 전략 팩토리
@@ -46,7 +47,7 @@ function generateRandomStartPosition(): { x: number; y: number } {
  * 봇의 고유 ID를 생성합니다.
  */
 function generateBotId(): string {
-    return `bot_${Date.now()}_${Math.random()}`;
+    return `bot_${uuidv4()}`;
 }
 
 /**

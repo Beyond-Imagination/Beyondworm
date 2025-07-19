@@ -1,10 +1,11 @@
 import { MovementStrategy } from "../types/movement";
+import { Worm } from "@beyondworm/shared";
 
 /**
  * 먹이 탐색 움직임 전략
  */
 export class FoodSeekerMovementStrategy implements MovementStrategy {
-    update(): { x: number; y: number } | null {
+    update(_worm: Worm, _allWorms: Worm[]): { x: number; y: number } | null {
         // 먹이를 찾는 로직 (현재는 랜덤)
         if (Math.random() < 0.05) {
             const x = Math.random() * 2 - 1;

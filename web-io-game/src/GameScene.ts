@@ -207,8 +207,16 @@ export default class GameScene extends Phaser.Scene {
             const clientSegment = clientWorm.segments[i];
             const serverSegment = serverWorm.segments[i];
 
-            clientSegment.x = Phaser.Math.Linear(clientSegment.x, serverSegment.x, 0.3);
-            clientSegment.y = Phaser.Math.Linear(clientSegment.y, serverSegment.y, 0.3);
+            clientSegment.x = Phaser.Math.Linear(
+                clientSegment.x,
+                serverSegment.x,
+                FE_CONSTANTS.WORM_POSITION_LERP_FACTOR,
+            );
+            clientSegment.y = Phaser.Math.Linear(
+                clientSegment.y,
+                serverSegment.y,
+                FE_CONSTANTS.WORM_POSITION_LERP_FACTOR,
+            );
 
             // 반지름 보간
             const newRadius = Phaser.Math.Linear(clientSegment.radius, serverSegment.radius, 0.1);

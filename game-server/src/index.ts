@@ -39,7 +39,8 @@ function initializeBots(
     botMovementStrategies: Map<string, MovementStrategy>,
 ): void {
     for (let i = 0; i < GAME_CONSTANTS.BOT_COUNT; i++) {
-        const botType = Math.floor(Math.random() * 2) as BotType;
+        const botTypeCount = Object.keys(BotType).length / 2;
+        const botType = Math.floor(Math.random() * botTypeCount) as BotType;
         const bot = createBotWorm(botType);
 
         worms.set(bot.id, bot);
