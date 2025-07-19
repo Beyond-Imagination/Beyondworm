@@ -1,5 +1,31 @@
 // 공통 타입 예시
 
+export enum WormType {
+    Player = "player",
+    Bot = "bot",
+}
+
+export enum BotType {
+    FoodSeeker = 0,
+    PlayerTracker = 1,
+}
+
+export interface WormSegment {
+    x: number;
+    y: number;
+    radius: number;
+}
+
+export interface Worm {
+    id: string;
+    type: WormType;
+    botType?: BotType; // 봇인 경우에만 사용되는 속성
+    segments: WormSegment[];
+    direction: { x: number; y: number };
+    isSprinting: boolean;
+    color: number; // 지렁이 색상
+}
+
 export interface Player {
     id: string;
     nickname: string;
