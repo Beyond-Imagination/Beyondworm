@@ -1,6 +1,6 @@
 import { io, Socket } from "socket.io-client";
 import GameScene from "./GameScene";
-import { GAME_CONSTANTS } from "@beyondworm/shared";
+import { GAME_CONSTANTS, Worm } from "@beyondworm/shared";
 
 export default class GameClient {
     private socket: Socket;
@@ -19,20 +19,37 @@ export default class GameClient {
             console.log("✅ Connected to server!");
         });
 
-        this.socket.on("init", (data) => {
+        this.socket.on("init", (data: { id: string; worms: Worm[] }) => {
             console.log("--- init ---");
             console.log("My ID:", data.id);
-            console.log("All players:", data.players);
-            console.log(GAME_CONSTANTS.TICK_MS);
+            console.log("All worms:", data.worms);
+            console.log("TICK_MS:", GAME_CONSTANTS.TICK_MS);
+
+            this.scene.initializeFromServer(data.id, data.worms);
         });
 
-        this.socket.on("player-joined", (player) => {});
+        this.socket.on("player-joined", (data: { worm: Worm }) => {
+            console.log("Player joined:", data);
+            // 새 플레이어가 접속했을 때 처리
+            this.scene.addWormFromServer(data.worm);
+        });
 
-        this.socket.on("player-left", (playerId) => {});
+        this.socket.on("player-left", (playerId: string) => {
+            console.log("Player left:", playerId);
+            // 플레이어가 나갔을 때 처리
+            this.scene.removeWormFromServer(playerId);
+        });
 
-        this.socket.on("state-update", (players) => {});
+        this.socket.on("state-update", (worms: Worm[]) => {
+            // 서버로부터 받은 모든 지렁이 상태로 업데이트
+            this.scene.updateWormsFromServer(worms);
+        });
 
         this.socket.on("disconnect", () => {});
+
+        this.socket.on("connect_error", (error) => {
+            console.error("❌ Connection error:", error);
+        });
     }
 
     /**
@@ -45,11 +62,27 @@ export default class GameClient {
         }
 
         this.directionSender = setInterval(() => {
-            if (this.scene.playerState) {
-                const direction = this.scene.playerState.lastVel;
-                this.socket.emit("update-state", { x: direction.x, y: direction.y });
+            if (this.scene.getPlayerDirection) {
+                const direction = this.scene.getPlayerDirection();
+                if (direction) {
+                    this.socket.emit("update-state", { x: direction.x, y: direction.y });
+                }
             }
         }, GAME_CONSTANTS.TICK_MS);
+    }
+
+    /**
+     * 스프린트 시작을 서버에 알림
+     */
+    public startSprint() {
+        this.socket.emit("sprint-start");
+    }
+
+    /**
+     * 스프린트 끝을 서버에 알림
+     */
+    public stopSprint() {
+        this.socket.emit("sprint-stop");
     }
 
     /**
