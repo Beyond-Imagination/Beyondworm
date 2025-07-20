@@ -1,6 +1,6 @@
 import { io, Socket } from "socket.io-client";
 import GameScene from "./GameScene";
-import { GAME_CONSTANTS, Worm } from "@beyondworm/shared";
+import { Food, GAME_CONSTANTS, Worm } from "@beyondworm/shared";
 
 export default class GameClient {
     private socket: Socket;
@@ -19,7 +19,7 @@ export default class GameClient {
             console.log("✅ Connected to server!");
         });
 
-        this.socket.on("init", (data: { id: string; worms: Worm[]; foods: any[] }) => {
+        this.socket.on("init", (data: { id: string; worms: Worm[]; foods: Food[] }) => {
             console.log("--- init ---");
             console.log("My ID:", data.id);
             console.log("All worms:", data.worms);
@@ -41,7 +41,7 @@ export default class GameClient {
             this.scene.removeWormFromServer(playerId);
         });
 
-        this.socket.on("state-update", (data: { worms: Worm[]; foods: any[] }) => {
+        this.socket.on("state-update", (data: { worms: Worm[]; foods: Food[] }) => {
             // 서버로부터 받은 모든 지렁이 및 먹이 상태로 업데이트
             this.scene.updateWormsFromServer(data.worms);
             this.scene.updateFoodsFromServer(data.foods);

@@ -1,9 +1,9 @@
 import Phaser from "phaser";
-import Food from "./Food";
 import { FE_CONSTANTS } from "./constants";
 import { WormState } from "./WormState";
 import GameClient from "./GameClient";
-import { GAME_CONSTANTS, Worm } from "@beyondworm/shared";
+import { Food, GAME_CONSTANTS, Worm } from "@beyondworm/shared";
+import FoodUI from "./FoodUI";
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -13,8 +13,8 @@ export default class GameScene extends Phaser.Scene {
     private gameClient!: GameClient;
 
     // 서버에서 관리되는 먹이들
-    public serverFoods: Map<string, any> = new Map();
-    public foods: Food[] = [];
+    public serverFoods: Map<string, Food> = new Map();
+    public foods: FoodUI[] = [];
 
     public playerState!: WormState; // 로컬 플레이어
     public worms!: WormState[]; // 모든 지렁이 상태들
@@ -67,7 +67,7 @@ export default class GameScene extends Phaser.Scene {
     /**
      * 서버로부터 받은 데이터로 게임 초기화
      */
-    public initializeFromServer(playerId: string, worms: Worm[], foods: any[]) {
+    public initializeFromServer(playerId: string, worms: Worm[], foods: Food[]) {
         this.playerId = playerId;
         this.clearAllWorms();
         this.clearAllFoods();
@@ -248,34 +248,39 @@ export default class GameScene extends Phaser.Scene {
     /**
      * 서버로부터 받은 먹이 데이터로 클라이언트 먹이 업데이트
      */
-    public updateFoodsFromServer(serverFoods: any[]) {
-        // 기존 먹이들 중 서버에 없는 것들 제거
-        for (const clientFood of this.foods) {
-            const foodId = clientFood.sprite.getData("foodId");
-            const serverFood = serverFoods.find((f) => f.id === foodId);
-            if (!serverFood) {
-                // 서버에 없는 먹이는 제거
-                this.foodsGroup.remove(clientFood.sprite, true, true);
-            }
-        }
+    public updateFoodsFromServer(serverFoods: Food[]) {
+        const serverFoodIds = new Set(serverFoods.map((f) => f.id));
+
+        // 1. 클라이언트에는 있지만 서버에는 없는 먹이 제거
         this.foods = this.foods.filter((clientFood) => {
-            const foodId = clientFood.sprite.getData("foodId");
-            return serverFoods.some((f) => f.id === foodId);
+            const foodId = clientFood.sprite.getData("foodId") as string;
+            if (serverFoodIds.has(foodId)) {
+                return true; // 유지
+            } else {
+                this.foodsGroup.remove(clientFood.sprite, true, true); // 제거
+                return false;
+            }
         });
 
-        // 새로운 먹이들 추가
+        // 2. 서버에는 있지만 클라이언트에는 없는 먹이 추가
+        const clientFoodIds = new Set(this.foods.map((f) => f.sprite.getData("foodId") as string));
         for (const serverFood of serverFoods) {
-            const existingFood = this.foods.find((f) => f.sprite.getData("foodId") === serverFood.id);
-            if (!existingFood) {
-                // 새로운 먹이 추가
-                const food = new Food(this, serverFood.x, serverFood.y, serverFood.radius, serverFood.color);
+            if (!clientFoodIds.has(serverFood.id)) {
+                const food = new FoodUI(
+                    serverFood.id,
+                    this,
+                    serverFood.x,
+                    serverFood.y,
+                    serverFood.radius,
+                    serverFood.color,
+                );
                 food.sprite.setData("foodId", serverFood.id);
                 this.foods.push(food);
                 this.foodsGroup.add(food.sprite);
             }
         }
 
-        // 서버 먹이 맵 업데이트
+        // 3. 서버 먹이 맵 업데이트
         this.serverFoods.clear();
         for (const serverFood of serverFoods) {
             this.serverFoods.set(serverFood.id, serverFood);

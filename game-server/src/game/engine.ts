@@ -12,7 +12,7 @@ export function createRandomFood(): Food {
         x: Math.random() * (GAME_CONSTANTS.MAP_WIDTH - 200) + 100,
         y: Math.random() * (GAME_CONSTANTS.MAP_HEIGHT - 200) + 100,
         radius: GAME_CONSTANTS.FOOD_RADIUS,
-        color: 0xff3333, // 빨간색
+        color: GAME_CONSTANTS.FOOD_COLOR, // 빨간색
     };
 }
 

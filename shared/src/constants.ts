@@ -28,6 +28,7 @@ export const GAME_CONSTANTS = {
     // Food
     FOOD_RADIUS: 30, // 먹이(원) 반지름(px)
     MINIMUM_FOOD_COUNT: 200, // 맵상의 최소 먹이 개수
+    FOOD_COLOR: 0xff3333, // 먹이 색상 (빨간색)
 
     // Collision
     MAX_COLLISION_TOLERANCE: 25, // 충돌 허용 보정치(px)
