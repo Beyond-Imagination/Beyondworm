@@ -100,8 +100,12 @@ function createGameLoop(
 
         updateAndBroadcastGameState(io, deltaTime, worms, foods, targetDirections, botMovementStrategies);
 
+        let nextSleepTime = GAME_CONSTANTS.TICK_MS - (Date.now() - lastTickTime); // 다음 틱까지 대기 시간 계산
+        if (nextSleepTime < 0) {
+            nextSleepTime = 0; // 음수일 경우 0으로 설정
+        }
         // 다음 루프를 스케줄링합니다.
-        setTimeout(gameLoop, GAME_CONSTANTS.TICK_MS);
+        setTimeout(gameLoop, nextSleepTime);
     }
 
     return gameLoop;
