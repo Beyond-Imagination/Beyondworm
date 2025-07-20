@@ -22,11 +22,13 @@ export const GAME_CONSTANTS = {
     // Segment
     SEGMENT_SPACING: 14, // 세그먼트 간 고정 거리(px)
     SEGMENT_DEFAULT_COUNT: 5, // 기본 세그먼트(원) 개수
-    SEGMENT_MAX_COUNT: 25, // 최대 세그먼트(원) 개수
     SEGMENT_DEFAULT_RADIUS: 40, // 기본 세그먼트(원) 반지름(px)
     SEGMENT_GROWTH_RADIUS: 1.5, // 먹이를 먹을 때 세그먼트 반지름 증가량(px)
 
     // Food
     FOOD_RADIUS: 30, // 먹이(원) 반지름(px)
     MINIMUM_FOOD_COUNT: 200, // 맵상의 최소 먹이 개수
+
+    // Collision
+    MAX_COLLISION_TOLERANCE: 25, // 충돌 허용 보정치(px)
 };

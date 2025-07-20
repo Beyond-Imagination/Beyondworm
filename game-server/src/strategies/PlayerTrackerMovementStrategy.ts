@@ -1,11 +1,11 @@
-import { Worm, WormType } from "@beyondworm/shared";
+import { Food, Worm, WormType } from "@beyondworm/shared";
 import { MovementStrategy } from "../types/movement";
 
 /**
  * 플레이어 추적 움직임 전략
  */
 export class PlayerTrackerMovementStrategy implements MovementStrategy {
-    update(worm: Worm, allWorms: Worm[]): { x: number; y: number } | null {
+    update(worm: Worm, allWorms: Worm[], _foods: Map<string, Food>): { x: number; y: number } | null {
         const head = worm.segments[0];
 
         // 가장 가까운 플레이어 추적

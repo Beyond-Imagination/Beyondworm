@@ -16,6 +16,14 @@ export interface WormSegment {
     radius: number;
 }
 
+export interface Food {
+    id: string;
+    x: number;
+    y: number;
+    radius: number;
+    color: number;
+}
+
 export interface Worm {
     id: string;
     nickname: string;
