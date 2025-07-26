@@ -202,7 +202,6 @@ export default class GameScene extends Phaser.Scene {
             }
         }
 
-        // 서버 위치로 세그먼트 위치 업데이트 (부드러운 보간)
         for (let i = 0; i < clientWorm.segments.length; i++) {
             const clientSegment = clientWorm.segments[i];
             const serverSegment = serverWorm.segments[i];

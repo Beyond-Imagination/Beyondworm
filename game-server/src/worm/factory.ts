@@ -13,6 +13,8 @@ export function createMovementStrategy(botType: BotType): MovementStrategy {
             return new FoodSeekerMovementStrategy();
         case BotType.PlayerTracker:
             return new PlayerTrackerMovementStrategy();
+        default:
+            console.error(`Unknown bot type: ${botType}`);
     }
 }
 
