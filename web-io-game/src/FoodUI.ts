@@ -1,11 +1,11 @@
 import Phaser from "phaser";
 
-export default class Food {
+export default class FoodUI {
+    public id: string;
     public sprite: Phaser.GameObjects.Arc; // 추후 이미지를 위해 Arc 대신 Sprite로 변경 가능
-    private scene: Phaser.Scene; // scene 참조를 저장
 
-    constructor(scene: Phaser.Scene, x: number, y: number, radius: number = 30, color: number = 0xff3333) {
-        this.scene = scene; // scene 참조 저장
+    constructor(id: string, scene: Phaser.Scene, x: number, y: number, radius: number, color: number) {
+        this.id = id;
         // Phaser의 Arc(원) 오브젝트 생성
         this.sprite = scene.add.circle(x, y, radius, color);
         this.sprite.setStrokeStyle(4, 0x880000);

@@ -1,9 +1,9 @@
 import Phaser from "phaser";
-import Food from "./Food";
 import { FE_CONSTANTS } from "./constants";
 import { WormState } from "./WormState";
 import GameClient from "./GameClient";
-import { GAME_CONSTANTS, Worm } from "@beyondworm/shared";
+import { Food, GAME_CONSTANTS, Worm } from "@beyondworm/shared";
+import FoodUI from "./FoodUI";
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -12,9 +12,9 @@ export default class GameScene extends Phaser.Scene {
 
     private gameClient!: GameClient;
 
-    // foods 속성을 public 또는 getter로 만들어 전략에서 접근 가능하게 하거나, calculateDesiredDirection에 전달해야 함.
-    // 여기서는 GameScene의 인스턴스를 전략에 넘겨주고, (scene as any).foods로 접근하는 방식을 사용.
-    public foods: Food[] = [];
+    // 서버에서 관리되는 먹이들
+    public serverFoods: Map<string, Food> = new Map();
+    public foods: FoodUI[] = [];
 
     public playerState!: WormState; // 로컬 플레이어
     public worms!: WormState[]; // 모든 지렁이 상태들
@@ -47,9 +47,6 @@ export default class GameScene extends Phaser.Scene {
         this.wormHeadsGroup = this.physics.add.group();
         this.foodsGroup = this.physics.add.group();
 
-        // 먹이 여러 개 랜덤 위치에 소환
-        this.updateFoods();
-
         // UIScene이 실행 중이 아니면 실행
         if (!this.scene.isActive("UIScene")) {
             this.scene.launch("UIScene");
@@ -70,13 +67,17 @@ export default class GameScene extends Phaser.Scene {
     /**
      * 서버로부터 받은 데이터로 게임 초기화
      */
-    public initializeFromServer(playerId: string, worms: Worm[]) {
+    public initializeFromServer(playerId: string, worms: Worm[], foods: Food[]) {
         this.playerId = playerId;
         this.clearAllWorms();
+        this.clearAllFoods();
 
         for (const serverWorm of worms) {
             this.addWormFromServer(serverWorm);
         }
+
+        // 서버 먹이 초기화
+        this.updateFoodsFromServer(foods);
 
         // 플레이어 설정
         const playerWorm = this.worms.find((w) => w.segments[0].getData("wormId") === playerId);
@@ -243,6 +244,71 @@ export default class GameScene extends Phaser.Scene {
         this.serverWorms.clear();
     }
 
+    /**
+     * 서버로부터 받은 먹이 데이터로 클라이언트 먹이 업데이트
+     */
+    public updateFoodsFromServer(serverFoods: Food[]) {
+        const serverFoodIds = new Set(serverFoods.map((f) => f.id));
+
+        // 1. 클라이언트에는 있지만 서버에는 없는 먹이 제거
+        this.foods = this.foods.filter((clientFood) => {
+            const foodId = clientFood.sprite.getData("foodId") as string;
+            if (serverFoodIds.has(foodId)) {
+                return true; // 유지
+            } else {
+                this.foodsGroup.remove(clientFood.sprite, true, true); // 제거
+                return false;
+            }
+        });
+
+        // 2. 서버에는 있지만 클라이언트에는 없는 먹이 추가
+        const clientFoodIds = new Set(this.foods.map((f) => f.sprite.getData("foodId") as string));
+        for (const serverFood of serverFoods) {
+            if (!clientFoodIds.has(serverFood.id)) {
+                const food = new FoodUI(
+                    serverFood.id,
+                    this,
+                    serverFood.x,
+                    serverFood.y,
+                    serverFood.radius,
+                    serverFood.color,
+                );
+                food.sprite.setData("foodId", serverFood.id);
+                this.foods.push(food);
+                this.foodsGroup.add(food.sprite);
+            }
+        }
+
+        // 3. 서버 먹이 맵 업데이트
+        this.serverFoods.clear();
+        for (const serverFood of serverFoods) {
+            this.serverFoods.set(serverFood.id, serverFood);
+        }
+    }
+
+    /**
+     * 서버에서 먹이가 먹혔을 때 처리
+     */
+    public handleFoodEatenFromServer(collisions: { wormId: string; foodId: string }[]) {
+        for (const collision of collisions) {
+            const food = this.foods.find((f) => f.sprite.getData("foodId") === collision.foodId);
+            if (food) {
+                console.log(`🍎 Food eaten: ${collision.foodId} by ${collision.wormId}`);
+            }
+        }
+    }
+
+    /**
+     * 모든 먹이 제거
+     */
+    private clearAllFoods() {
+        for (const food of this.foods) {
+            this.foodsGroup.remove(food.sprite, true, true);
+        }
+        this.foods = [];
+        this.serverFoods.clear();
+    }
+
     // 충돌 핸들러: head와 foodSprite
     private handleFoodCollision(
         head: Phaser.Types.Physics.Arcade.GameObjectWithBody,
@@ -250,14 +316,23 @@ export default class GameScene extends Phaser.Scene {
     ) {
         // head에 해당하는 wormState를 worms 배열에서 찾음
         const eater = this.worms.find((w) => w.segments[0] === head);
-        if (!foodSprite.active || !eater) return;
+        if (!foodSprite.active || !eater || !this.playerState) return;
+
+        // 플레이어의 먹이만 처리 (자신의 지렁이가 먹었을 때만)
+        if (eater !== this.playerState) return;
+
+        // 서버에 먹이 먹기 리포트 전송
+        const foodId = (foodSprite as Phaser.GameObjects.Arc).getData("foodId");
+
+        // 즉시 클라이언트에서 먹이 제거 (시각적 반응성을 위해)
         this.biteFood(foodSprite as Phaser.GameObjects.Arc);
+
+        // 서버에 리포트 (서버에서 검증 후 최종 처리)
+        this.gameClient.reportFoodEaten(foodId);
+        console.log(`📤 Reported food eaten: ${foodId} at position:`, { x: head.x, y: head.y });
     }
 
     update(_: number, dms: number) {
-        // 먹이 수가 부족하면 다시 랜덤 생성
-        this.updateFoods();
-
         // 카메라 업데이트
         this.updateCamera();
     }
@@ -301,26 +376,6 @@ export default class GameScene extends Phaser.Scene {
         this.foodsGroup.remove(food.sprite, true, true); // 그룹에서 제거
 
         this.foods = this.foods.filter((f) => f !== food); // 배열에서 제거
-
-        // 먹이 먹기는 나중에 서버에서 처리하도록 변경 예정
-        // 현재는 클라이언트에서만 처리
-    }
-
-    private updateFoods(
-        minX = 100,
-        maxX = GAME_CONSTANTS.MAP_WIDTH - 100,
-        minY = 100,
-        maxY = GAME_CONSTANTS.MAP_HEIGHT - 100,
-    ) {
-        // 먹이 수가 부족하면 다시 랜덤 생성
-        while (this.foods.length < GAME_CONSTANTS.MINIMUM_FOOD_COUNT) {
-            const x = Phaser.Math.Between(minX, maxX);
-            const y = Phaser.Math.Between(minY, maxY);
-            const food = new Food(this, x, y, GAME_CONSTANTS.FOOD_RADIUS, 0xff3333);
-            this.foods.push(food);
-            // 그룹에 추가만 하면 overlap이 처리됨
-            this.foodsGroup.add(food.sprite);
-        }
     }
 
     private updateCamera() {
