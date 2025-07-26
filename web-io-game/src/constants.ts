@@ -4,4 +4,5 @@ export const FE_CONSTANTS = {
 
     // UI
     ZORDER_SEGMENT: 1000,
+    WORM_POSITION_LERP_FACTOR: 0.3,
 };

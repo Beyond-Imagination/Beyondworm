@@ -14,6 +14,7 @@ export const GAME_CONSTANTS = {
     HEAD_SPEED: 350, // 머리가 마우스를 쫓는 속도(px/s)
     HEAD_SPRINT_SPEED: 550, // 달리기 속도
     SPRINT_FOOD_DROP_INTERVAL: 500, // 달리기 중 먹이 방출 간격 (ms)
+    TURN_RATE: 5.0, // 지렁이 회전 속도 (라디안/초)
 
     // Bot
     BOT_COUNT: 6, // 맵에 생성될 봇 개수
