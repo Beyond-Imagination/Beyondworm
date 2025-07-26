@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import express from "express";
 import { createServer, Server } from "node:http";
 import { Server as SocketIOServer } from "socket.io";
-import { GAME_CONSTANTS, Worm, BotType, Food } from "@beyondworm/shared";
+import { GAME_CONSTANTS, Worm, BotType, Food, WormType } from "@beyondworm/shared";
 import { MovementStrategy } from "./types/movement";
 import { createBotWorm, createMovementStrategy } from "./worm/factory";
 import { updateWorld, updateFoods, handleBotFoodCollisions } from "./game/engine";
@@ -50,6 +50,69 @@ function initializeBots(
 }
 
 /**
+ * 모든 봇들을 제거합니다.
+ */
+function removeAllBots(
+    worms: Map<string, Worm>,
+    targetDirections: Map<string, { x: number; y: number }>,
+    botMovementStrategies: Map<string, MovementStrategy>,
+): void {
+    const botIds: string[] = [];
+
+    // 봇 ID들을 먼저 수집
+    for (const [id, worm] of worms.entries()) {
+        if (worm.type === WormType.Bot) {
+            botIds.push(id);
+        }
+    }
+
+    // 수집된 봇 ID들을 제거
+    for (const botId of botIds) {
+        worms.delete(botId);
+        targetDirections.delete(botId);
+        botMovementStrategies.delete(botId);
+    }
+
+    console.log(`🤖 Removed ${botIds.length} bots - no players online`);
+}
+
+/**
+ * 현재 접속한 플레이어 수를 반환합니다.
+ */
+function getPlayerCount(worms: Map<string, Worm>): number {
+    let playerCount = 0;
+    for (const worm of worms.values()) {
+        if (worm.type === WormType.Player) {
+            playerCount++;
+        }
+    }
+    return playerCount;
+}
+
+/**
+ * 플레이어가 있는지 확인하고 필요에 따라 봇을 관리합니다.
+ */
+function manageBots(
+    worms: Map<string, Worm>,
+    targetDirections: Map<string, { x: number; y: number }>,
+    botMovementStrategies: Map<string, MovementStrategy>,
+): void {
+    const playerCount = getPlayerCount(worms);
+    const botCount = worms.size - playerCount;
+
+    if (playerCount === 0) {
+        // 플레이어가 없으면 모든 봇 제거
+        if (botCount > 0) {
+            removeAllBots(worms, targetDirections, botMovementStrategies);
+        }
+    } else if (botCount === 0) {
+        // 플레이어가 있는데 봇이 없으면 봇 생성
+        console.log(`🤖 Creating bots - ${playerCount} players online`);
+        initializeBots(worms, targetDirections, botMovementStrategies);
+    }
+}
+
+/**
  * 게임 상태를 업데이트하고 클라이언트에게 전송합니다.
  */
 function updateAndBroadcastGameState(
@@ -60,6 +123,9 @@ function updateAndBroadcastGameState(
     targetDirections: Map<string, { x: number; y: number }>,
     botMovementStrategies: Map<string, MovementStrategy>,
 ): void {
+    // 봇 관리 (주기적으로 체크)
+    manageBots(worms, targetDirections, botMovementStrategies);
+
     // 먹이 업데이트 (부족한 먹이 추가)
     updateFoods(foods);
 
@@ -141,11 +207,8 @@ const targetDirections = new Map<string, { x: number; y: number }>();
  */
 const botMovementStrategies = new Map<string, MovementStrategy>();
 
-// 봇 초기화
-initializeBots(worms, targetDirections, botMovementStrategies);
-
 // Socket.IO 이벤트 핸들러 설정
-setupSocketHandlers(io, worms, foods, targetDirections);
+setupSocketHandlers(io, worms, foods, targetDirections, botMovementStrategies, manageBots);
 
 // 게임 루프 시작
 const gameLoop = createGameLoop(io, worms, foods, targetDirections, botMovementStrategies);
