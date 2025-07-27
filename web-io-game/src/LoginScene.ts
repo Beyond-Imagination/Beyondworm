@@ -12,14 +12,14 @@ export default class LoginScene extends Phaser.Scene {
 
     preload() {
         // HTML 폼을 로드합니다.
-        this.load.html('loginform', 'src/loginform.html');
+        this.load.html("loginform", "src/loginform.html");
     }
 
     create() {
         const screenCenterX = this.cameras.main.width / 2;
         const screenCenterY = this.cameras.main.height / 2;
 
-        const loginDom = this.add.dom(screenCenterX, screenCenterY).createFromCache('loginform');
+        const loginDom = this.add.dom(screenCenterX, screenCenterY).createFromCache("loginform");
 
         // 폼 요소에 대한 이벤트 리스너 설정
         const usernameInput = loginDom.getChildByID("username-input") as HTMLInputElement;
