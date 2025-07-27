@@ -2,10 +2,10 @@ import dotenv from "dotenv";
 import express from "express";
 import { createServer, Server } from "node:http";
 import { Server as SocketIOServer } from "socket.io";
-import { GAME_CONSTANTS, Worm, BotType, WormType } from "@beyondworm/shared";
+import { GAME_CONSTANTS, Worm, BotType, Food, WormType } from "@beyondworm/shared";
 import { MovementStrategy } from "./types/movement";
 import { createBotWorm, createMovementStrategy } from "./worm/factory";
-import { updateWorld } from "./game/engine";
+import { updateWorld, updateFoods, handleBotFoodCollisions } from "./game/engine";
 import { setupSocketHandlers } from "./socket/handlers";
 
 dotenv.config(); // .env 로드
@@ -119,14 +119,32 @@ function updateAndBroadcastGameState(
     io: SocketIOServer,
     deltaTime: number,
     worms: Map<string, Worm>,
+    foods: Map<string, Food>,
     targetDirections: Map<string, { x: number; y: number }>,
     botMovementStrategies: Map<string, MovementStrategy>,
 ): void {
     // 봇 관리 (주기적으로 체크)
     manageBots(worms, targetDirections, botMovementStrategies);
 
-    updateWorld(deltaTime, worms, targetDirections, botMovementStrategies);
-    io.emit("state-update", Array.from(worms.values()));
+    // 먹이 업데이트 (부족한 먹이 추가)
+    updateFoods(foods);
+
+    // 지렁이 상태 업데이트
+    updateWorld(deltaTime, worms, foods, targetDirections, botMovementStrategies);
+
+    // 봇들의 먹이 충돌 처리 (봇은 리포트할 수 없으므로 서버에서 직접 처리)
+    const botCollisions = handleBotFoodCollisions(worms, foods);
+
+    // 봇이 먹이를 먹었다면 클라이언트들에게 알림
+    if (botCollisions.length > 0) {
+        io.emit("food-eaten", botCollisions);
+    }
+
+    // 클라이언트에게 게임 상태 전송
+    io.emit("state-update", {
+        worms: Array.from(worms.values()),
+        foods: Array.from(foods.values()),
+    });
 }
 
 /**
@@ -135,6 +153,7 @@ function updateAndBroadcastGameState(
 function createGameLoop(
     io: SocketIOServer,
     worms: Map<string, Worm>,
+    foods: Map<string, Food>,
     targetDirections: Map<string, { x: number; y: number }>,
     botMovementStrategies: Map<string, MovementStrategy>,
 ): () => void {
@@ -145,7 +164,7 @@ function createGameLoop(
         const deltaTime = (now - lastTickTime) / 1000;
         lastTickTime = now;
 
-        updateAndBroadcastGameState(io, deltaTime, worms, targetDirections, botMovementStrategies);
+        updateAndBroadcastGameState(io, deltaTime, worms, foods, targetDirections, botMovementStrategies);
 
         let nextSleepTime = GAME_CONSTANTS.TICK_MS - (Date.now() - lastTickTime); // 다음 틱까지 대기 시간 계산
         if (nextSleepTime < 0) {
@@ -171,6 +190,12 @@ const io = createSocketIOServer(httpServer);
 const worms = new Map<string, Worm>();
 
 /**
+ * 서버에서 관리하는 모든 먹이들
+ * Key: foodId, Value: Food
+ */
+const foods = new Map<string, Food>();
+
+/**
  * 각 지렁이의 목표 방향을 저장하는 맵
  * Key: wormId, Value: 목표 방향 (x, y)
  */
@@ -183,10 +208,10 @@ const targetDirections = new Map<string, { x: number; y: number }>();
 const botMovementStrategies = new Map<string, MovementStrategy>();
 
 // Socket.IO 이벤트 핸들러 설정
-setupSocketHandlers(io, worms, targetDirections, botMovementStrategies, manageBots);
+setupSocketHandlers(io, worms, foods, targetDirections, botMovementStrategies, manageBots);
 
 // 게임 루프 시작
-const gameLoop = createGameLoop(io, worms, targetDirections, botMovementStrategies);
+const gameLoop = createGameLoop(io, worms, foods, targetDirections, botMovementStrategies);
 gameLoop();
 
 httpServer.listen(PORT, () => {

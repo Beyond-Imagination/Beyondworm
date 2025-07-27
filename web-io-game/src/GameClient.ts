@@ -1,6 +1,6 @@
 import { io, Socket } from "socket.io-client";
 import GameScene from "./GameScene";
-import { GAME_CONSTANTS, Worm } from "@beyondworm/shared";
+import { Food, GAME_CONSTANTS, Worm } from "@beyondworm/shared";
 
 export default class GameClient {
     private socket: Socket;
@@ -19,13 +19,14 @@ export default class GameClient {
             console.log("✅ Connected to server!");
         });
 
-        this.socket.on("init", (data: { id: string; worms: Worm[] }) => {
+        this.socket.on("init", (data: { id: string; worms: Worm[]; foods: Food[] }) => {
             console.log("--- init ---");
             console.log("My ID:", data.id);
             console.log("All worms:", data.worms);
+            console.log("Foods:", data.foods);
             console.log("TICK_MS:", GAME_CONSTANTS.TICK_MS);
 
-            this.scene.initializeFromServer(data.id, data.worms);
+            this.scene.initializeFromServer(data.id, data.worms, data.foods);
         });
 
         this.socket.on("player-joined", (data: { worm: Worm }) => {
@@ -40,9 +41,15 @@ export default class GameClient {
             this.scene.removeWormFromServer(playerId);
         });
 
-        this.socket.on("state-update", (worms: Worm[]) => {
-            // 서버로부터 받은 모든 지렁이 상태로 업데이트
-            this.scene.updateWormsFromServer(worms);
+        this.socket.on("state-update", (data: { worms: Worm[]; foods: Food[] }) => {
+            // 서버로부터 받은 모든 지렁이 및 먹이 상태로 업데이트
+            this.scene.updateWormsFromServer(data.worms);
+            this.scene.updateFoodsFromServer(data.foods);
+        });
+
+        this.socket.on("food-eaten", (collisions: { wormId: string; foodId: string }[]) => {
+            // 먹이가 먹혔을 때 처리 (시각적 효과 등)
+            this.scene.handleFoodEatenFromServer(collisions);
         });
 
         this.socket.on("disconnect", () => {});
@@ -83,6 +90,13 @@ export default class GameClient {
      */
     public stopSprint() {
         this.socket.emit("sprint-stop");
+    }
+
+    /**
+     * 먹이 먹기를 서버에 리포트
+     */
+    public reportFoodEaten(foodId: string) {
+        this.socket.emit("food-eaten-report", { foodId });
     }
 
     /**

@@ -1,6 +1,7 @@
 import { Socket, Server as SocketIOServer } from "socket.io";
-import { Worm } from "@beyondworm/shared";
+import { Worm, Food } from "@beyondworm/shared";
 import { createPlayerWorm } from "../worm/factory";
+import { validateAndProcessFoodEaten } from "../game/engine";
 import { MovementStrategy } from "../types/movement";
 
 /**
@@ -10,6 +11,7 @@ function handlePlayerConnection(
     socket: Socket,
     io: SocketIOServer,
     worms: Map<string, Worm>,
+    foods: Map<string, Food>,
     targetDirections: Map<string, { x: number; y: number }>,
     botMovementStrategies: Map<string, MovementStrategy>,
     manageBots: (
@@ -34,6 +36,7 @@ function handlePlayerConnection(
     socket.emit("init", {
         id: socket.id,
         worms: Array.from(worms.values()),
+        foods: Array.from(foods.values()),
     });
 
     // 다른 클라이언트들에게 새 플레이어 알림
@@ -113,11 +116,31 @@ function handleSprintStop(socket: Socket, worms: Map<string, Worm>): void {
 }
 
 /**
+ * 클라이언트로부터 먹이 먹기 리포트를 처리합니다.
+ */
+function handleFoodEatenReport(
+    socket: Socket,
+    io: SocketIOServer,
+    data: { foodId: string },
+    worms: Map<string, Worm>,
+    foods: Map<string, Food>,
+): void {
+    // 클라이언트 리포트 기반으로 먹이 먹기 검증 및 처리
+    const success = validateAndProcessFoodEaten(socket.id, data.foodId, worms, foods);
+
+    if (success) {
+        // 검증 성공 - 모든 클라이언트에게 먹이가 먹혔음을 알림
+        io.emit("food-eaten", [{ wormId: socket.id, foodId: data.foodId }]);
+    }
+}
+
+/**
  * 소켓 이벤트 핸들러들을 설정합니다.
  */
 export function setupSocketHandlers(
     io: SocketIOServer,
     worms: Map<string, Worm>,
+    foods: Map<string, Food>,
     targetDirections: Map<string, { x: number; y: number }>,
     botMovementStrategies: Map<string, MovementStrategy>,
     manageBots: (
@@ -128,7 +151,7 @@ export function setupSocketHandlers(
 ): void {
     io.on("connection", (socket: Socket) => {
         // 플레이어 연결 처리
-        handlePlayerConnection(socket, io, worms, targetDirections, botMovementStrategies, manageBots);
+        handlePlayerConnection(socket, io, worms, foods, targetDirections, botMovementStrategies, manageBots);
 
         // 연결 해제 이벤트
         socket.on("disconnect", () => {
@@ -138,6 +161,11 @@ export function setupSocketHandlers(
         // 상태 업데이트 이벤트
         socket.on("update-state", (data: { x: number; y: number }) => {
             handleStateUpdate(socket, data, worms, targetDirections);
+        });
+
+        // 먹이 먹기 리포트 이벤트 (리포트 기반 처리)
+        socket.on("food-eaten-report", (data: { foodId: string }) => {
+            handleFoodEatenReport(socket, io, data, worms, foods);
         });
 
         // 스프린트 이벤트들

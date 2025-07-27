@@ -1,6 +1,51 @@
-import { GAME_CONSTANTS, Worm, WormType } from "@beyondworm/shared";
+import { GAME_CONSTANTS, Worm, WormType, Food } from "@beyondworm/shared";
 import { MovementStrategy } from "../types/movement";
 import { getAngleDifference, vectorToAngle, angleToVector } from "../utils/math";
+import { v4 as uuidv4 } from "uuid";
+
+/**
+ * 랜덤 먹이를 생성합니다.
+ */
+export function createRandomFood(): Food {
+    return {
+        id: `food_${uuidv4()}`,
+        x: Math.random() * (GAME_CONSTANTS.MAP_WIDTH - 200) + 100,
+        y: Math.random() * (GAME_CONSTANTS.MAP_HEIGHT - 200) + 100,
+        radius: GAME_CONSTANTS.FOOD_RADIUS,
+        color: GAME_CONSTANTS.FOOD_COLOR, // 빨간색
+    };
+}
+
+/**
+ * 먹이 목록을 업데이트합니다 (부족한 먹이를 추가).
+ */
+export function updateFoods(foods: Map<string, Food>): void {
+    while (foods.size < GAME_CONSTANTS.MINIMUM_FOOD_COUNT) {
+        const food = createRandomFood();
+        foods.set(food.id, food);
+    }
+}
+
+/**
+ * 지렁이가 먹이를 먹었을 때의 처리를 합니다.
+ */
+export function processFoodEaten(worm: Worm): void {
+    // 점수 증가
+    worm.score += 1;
+
+    // 세그먼트 반지름 증가
+    for (const segment of worm.segments) {
+        segment.radius += GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS;
+    }
+
+    // 새 세그먼트 추가
+    const lastSegment = worm.segments[worm.segments.length - 1];
+    worm.segments.push({
+        x: lastSegment.x,
+        y: lastSegment.y,
+        radius: GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS + GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS * worm.score,
+    });
+}
 
 /**
  * 봇의 움직임 로직
@@ -8,12 +53,13 @@ import { getAngleDifference, vectorToAngle, angleToVector } from "../utils/math"
 export function updateBotDirection(
     bot: Worm,
     allWorms: Worm[],
+    foods: Map<string, Food>,
     botMovementStrategies: Map<string, MovementStrategy>,
     targetDirections: Map<string, { x: number; y: number }>,
 ): void {
     const strategy = botMovementStrategies.get(bot.id);
     if (strategy) {
-        const newTargetDirection = strategy.update(bot, allWorms);
+        const newTargetDirection = strategy.update(bot, allWorms, foods);
 
         // 새로운 목표 방향이 있으면 설정
         if (newTargetDirection) {
@@ -117,12 +163,14 @@ function updateSingleWorm(
  * 게임 세계의 상태를 업데이트합니다.
  * @param deltaTime 이전 프레임과의 시간 차이 (초 단위)
  * @param worms 모든 지렁이들의 맵
+ * @param foods 모든 먹이들의 맵
  * @param targetDirections 각 지렁이의 목표 방향 맵
  * @param botMovementStrategies 봇들의 움직임 전략 맵
  */
 export function updateWorld(
     deltaTime: number,
     worms: Map<string, Worm>,
+    foods: Map<string, Food>,
     targetDirections: Map<string, { x: number; y: number }>,
     botMovementStrategies: Map<string, MovementStrategy>,
 ): void {
@@ -131,10 +179,79 @@ export function updateWorld(
     for (const worm of allWorms) {
         // 봇인 경우 AI 움직임 업데이트
         if (worm.type === WormType.Bot) {
-            updateBotDirection(worm, allWorms, botMovementStrategies, targetDirections);
+            updateBotDirection(worm, allWorms, foods, botMovementStrategies, targetDirections);
         }
 
         // 개별 지렁이 상태 업데이트
         updateSingleWorm(worm, deltaTime, targetDirections);
     }
+}
+
+/**
+ * 클라이언트 리포트 기반으로 먹이 먹기를 검증하고 처리합니다.
+ */
+export function validateAndProcessFoodEaten(
+    wormId: string,
+    foodId: string,
+    worms: Map<string, Worm>,
+    foods: Map<string, Food>,
+): boolean {
+    const worm = worms.get(wormId);
+    const food = foods.get(foodId);
+
+    if (!worm || !food) {
+        return false; // 지렁이나 먹이가 존재하지 않음
+    }
+
+    const head = worm.segments[0];
+
+    // 먹이와의 실제 거리 검증
+    const foodDistance = Math.hypot(head.x - food.x, head.y - food.y);
+    const collisionDistance = head.radius + food.radius;
+
+    // 머리 중심좌표로 부터 먹이 중심좌표까지의 거리가 머리와 먹이의 반지름 합에 약간의 보정치를 더한값보다 크면 검증실패
+    if (foodDistance > collisionDistance + GAME_CONSTANTS.MAX_COLLISION_TOLERANCE) {
+        console.log(`❌ Food distance validation failed: Player ${wormId}, food distance: ${foodDistance}`);
+        return false;
+    }
+
+    // 3. 검증 통과 - 먹이 먹기 처리
+    processFoodEaten(worm);
+    foods.delete(foodId); // 먹이 제거
+
+    console.log(`✅ Food eaten validated: Player ${wormId} ate food ${foodId}`);
+    return true;
+}
+
+/**
+ * 봇들의 먹이 충돌을 서버에서 직접 처리합니다.
+ * (봇은 클라이언트가 아니므로 리포트할 수 없음)
+ */
+export function handleBotFoodCollisions(
+    worms: Map<string, Worm>,
+    foods: Map<string, Food>,
+): { wormId: string; foodId: string }[] {
+    const collisions: { wormId: string; foodId: string }[] = [];
+
+    for (const worm of worms.values()) {
+        // 봇만 처리
+        if (worm.type !== WormType.Bot) continue;
+
+        const head = worm.segments[0];
+
+        for (const food of foods.values()) {
+            const distance = Math.hypot(head.x - food.x, head.y - food.y);
+            const collisionDistance = head.radius + food.radius;
+
+            if (distance < collisionDistance) {
+                // 봇이 먹이를 먹음
+                processFoodEaten(worm);
+                foods.delete(food.id); // 먹이 제거
+                collisions.push({ wormId: worm.id, foodId: food.id });
+                break; // 한 번에 하나의 먹이만 먹도록
+            }
+        }
+    }
+
+    return collisions;
 }
