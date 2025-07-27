@@ -10,31 +10,21 @@ export default class LoginScene extends Phaser.Scene {
         super({ key: "LoginScene" });
     }
 
+    preload() {
+        // HTML 폼을 로드합니다.
+        this.load.html('loginform', 'src/loginform.html');
+    }
+
     create() {
         const screenCenterX = this.cameras.main.width / 2;
         const screenCenterY = this.cameras.main.height / 2;
 
-        // HTML 로그인 폼 생성
-        const loginForm = `
-            <div style="background-color: rgba(0,0,0,0.5); padding: 40px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; gap: 20px;">
-                <h1 style="color: white; font-size: 32px; margin: 0 0 10px 0;">BeyondWorm</h1>
-                <input type="text" id="username-input" placeholder="Enter your ID" style="padding: 10px; font-size: 16px; width: 250px; border-radius: 5px; border: none;">
-                
-                <div id="server-list-container" style="width: 300px; color: white;">
-                    <h2 style="font-size: 20px; margin-bottom: 10px;">Server List</h2>
-                    <ul id="server-list" style="list-style: none; padding: 0; height: 150px; overflow-y: auto; border: 1px solid #555; border-radius: 5px;"></ul>
-                </div>
-
-                <button id="start-button" style="padding: 10px 20px; font-size: 16px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 5px;">Start Game</button>
-            </div>
-        `;
-
-        const formElement = this.add.dom(screenCenterX, screenCenterY).createFromHTML(loginForm);
+        const loginDom = this.add.dom(screenCenterX, screenCenterY).createFromCache('loginform');
 
         // 폼 요소에 대한 이벤트 리스너 설정
-        const usernameInput = formElement.getChildByID("username-input") as HTMLInputElement;
-        const startButton = formElement.getChildByID("start-button") as HTMLButtonElement;
-        const serverListElement = formElement.getChildByID("server-list") as HTMLUListElement;
+        const usernameInput = loginDom.getChildByID("username-input") as HTMLInputElement;
+        const startButton = loginDom.getChildByID("start-button") as HTMLButtonElement;
+        const serverListElement = loginDom.getChildByID("server-list") as HTMLUListElement;
 
         startButton.addEventListener("click", () => {
             // TODO: 로비 서버 구현 후, 수정
@@ -53,20 +43,15 @@ export default class LoginScene extends Phaser.Scene {
             // TODO: 로비 서버 구현 후, 수정
             // this.game.registry.set("serverAddress", this.selectedServer.address);
 
-            // UIScene을 미리 실행해 둡니다.
+            // UIScene 실행 및 GameScene 전환
             this.scene.launch("UIScene");
-
-            // GameScene으로 전환(transition)을 시작합니다.
             this.scene.transition({
                 target: "GameScene",
-                duration: 500, // 0.5초 동안 전환
-                moveBelow: true, // 전환하는 동안 LoginScene을 위로 유지
+                duration: 500,
+                moveBelow: true,
                 onUpdate: (progress: number) => {
-                    // progress는 0에서 1로 증가하는 값입니다.
                     const newAlpha = 1 - progress;
                     this.cameras.main.setAlpha(newAlpha);
-
-                    // GameScene과 UIScene의 카메라 알파를 progress에 맞춰 올립니다.
                     const gameScene = this.scene.get("GameScene");
                     const uiScene = this.scene.get("UIScene");
                     if (gameScene && uiScene) {
