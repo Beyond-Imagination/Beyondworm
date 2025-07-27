@@ -1,7 +1,8 @@
-import { GAME_CONSTANTS } from "./constants";
+import { FE_CONSTANTS } from "./constants";
 import { WormState, WormType, BotType } from "./WormState";
 import { PlayerMovementStrategy, TrackPlayerMovementStrategy, SeekFoodMovementStrategy } from "./MovementStrategy";
 import GameScene from "./GameScene";
+import { GAME_CONSTANTS } from "@beyondworm/shared";
 
 type WormQueueMap = {
     [WormType.Player]: WormState[];
@@ -205,7 +206,7 @@ export default class WormSpawner {
         // 공통 로직: 스타일, depth, physics body 등
         for (let i = 0; i < wormState.segments.length; i++) {
             const c = wormState.segments[i];
-            c.setDepth(GAME_CONSTANTS.ZORDER_SEGMENT - i);
+            c.setDepth(FE_CONSTANTS.ZORDER_SEGMENT - i);
             c.body.setCircle(GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS);
         }
 

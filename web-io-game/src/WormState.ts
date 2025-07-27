@@ -1,5 +1,5 @@
-import { GAME_CONSTANTS } from "./constants";
 import { MovementStrategy } from "./MovementStrategy";
+import { GAME_CONSTANTS } from "@beyondworm/shared";
 
 export enum WormType {
     Player = 0,

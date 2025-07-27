@@ -13,10 +13,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-      - name: 의존성 설치
+      - name: 공통 코드 의존성 설치
+        run: npm ci
+        working-directory: shared
+      - name: 공통 코드 빌드
+        run: npm run build
+        working-directory: shared
+      - name: FE 코드 의존성 설치
         run: npm ci
         working-directory: web-io-game
-      - name: 빌드
+      - name: FE 빌드
         run: npx vite build --outDir dist
         working-directory: web-io-game
       - name: 깃헙 페이지로 정적파일 배포

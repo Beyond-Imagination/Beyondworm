@@ -1,9 +1,10 @@
 import Phaser from "phaser";
-import GameSettings from "./GameSettings";
 import Food from "./Food";
-import { GAME_CONSTANTS } from "./constants";
+import { FE_CONSTANTS } from "./constants";
 import { WormState, WormType, BotType } from "./WormState";
 import WormSpawner from "./WormSpawner";
+import GameClient from "./GameClient";
+import { GAME_CONSTANTS } from "@beyondworm/shared";
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -11,6 +12,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     public wormSpawner = new WormSpawner();
+    private gameClient!: GameClient;
 
     // foods 속성을 public 또는 getter로 만들어 전략에서 접근 가능하게 하거나, calculateDesiredDirection에 전달해야 함.
     // 여기서는 GameScene의 인스턴스를 전략에 넘겨주고, (scene as any).foods로 접근하는 방식을 사용.
@@ -33,6 +35,10 @@ export default class GameScene extends Phaser.Scene {
         // 트랜지션 효과를 위해 시작 시 투명하게 설정
         this.cameras.main.setAlpha(0);
 
+        // 서버 연결
+        this.gameClient = new GameClient(this);
+        this.gameClient.startSendingDirection();
+
         // 개발 환경에서만 치트 등록
         if (import.meta.env.MODE === "development") {
             import("./Cheat").then((mod) => {
@@ -40,8 +46,8 @@ export default class GameScene extends Phaser.Scene {
             });
         }
 
-        const MapWidth = GameSettings.instance.get("MAP_WIDTH");
-        const MapHeight = GameSettings.instance.get("MAP_HEIGHT");
+        const MapWidth = GAME_CONSTANTS.MAP_WIDTH;
+        const MapHeight = GAME_CONSTANTS.MAP_HEIGHT;
 
         // 스포너 초기화
         this.wormSpawner.initialize(this);
@@ -139,7 +145,7 @@ export default class GameScene extends Phaser.Scene {
                 const newRadius = Phaser.Math.Linear(
                     seg.radius,
                     wormState.targetSegmentRadius,
-                    GAME_CONSTANTS.CAMERA_LERP_SPEED,
+                    FE_CONSTANTS.CAMERA_LERP_SPEED,
                 );
                 seg.setRadius(newRadius);
                 seg.body.setCircle(newRadius);
@@ -158,7 +164,10 @@ export default class GameScene extends Phaser.Scene {
 
     shutdown() {
         // Scene이 종료될 때 호출
-        // 등록된 키보드 이벤트 리스너 제거
+        // 1. GameClient 정리 (소켓 연결 해제, 타이머 제거 등)
+        this.gameClient.disconnect();
+
+        // 2. 등록된 키보드 이벤트 리스너 제거
         this.input.keyboard.off("keydown-SPACE");
         this.input.keyboard.off("keyup-SPACE");
     }
@@ -180,7 +189,7 @@ export default class GameScene extends Phaser.Scene {
      */
     private setupCamera(target: Phaser.GameObjects.GameObject, width: number, height: number) {
         this.cameras.main.setBounds(0, 0, width, height);
-        this.cameras.main.startFollow(target, true, GAME_CONSTANTS.CAMERA_LERP_SPEED, GAME_CONSTANTS.CAMERA_LERP_SPEED);
+        this.cameras.main.startFollow(target, true, FE_CONSTANTS.CAMERA_LERP_SPEED, FE_CONSTANTS.CAMERA_LERP_SPEED);
         this.cameras.main.setZoom(1); // 필요시 zoom 값 조정
     }
 
@@ -204,7 +213,7 @@ export default class GameScene extends Phaser.Scene {
             worm.segmentColor,
         );
         newSegment.setStrokeStyle(4, 0x333333);
-        newSegment.setDepth(GAME_CONSTANTS.ZORDER_SEGMENT - targetSegments.length);
+        newSegment.setDepth(FE_CONSTANTS.ZORDER_SEGMENT - targetSegments.length);
 
         // 새 세그먼트에 physics body 부여
         this.physics.add.existing(newSegment, false);
@@ -224,7 +233,7 @@ export default class GameScene extends Phaser.Scene {
         maxY = GAME_CONSTANTS.MAP_HEIGHT - 100,
     ) {
         // 먹이 수가 부족하면 다시 랜덤 생성
-        while (this.foods.length < GameSettings.instance.get("MINIMUM_FOOD_COUNT")) {
+        while (this.foods.length < GAME_CONSTANTS.MINIMUM_FOOD_COUNT) {
             const x = Phaser.Math.Between(minX, maxX);
             const y = Phaser.Math.Between(minY, maxY);
             const food = new Food(this, x, y, GAME_CONSTANTS.FOOD_RADIUS, 0xff3333);
@@ -245,7 +254,7 @@ export default class GameScene extends Phaser.Scene {
         const currentRadius = this.playerState.segments[0].radius; // 플레이어 기준
         const baseZoom = 1;
         const zoom = baseZoom * (baseRadius / currentRadius);
-        this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom, zoom, GAME_CONSTANTS.CAMERA_LERP_SPEED));
+        this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom, zoom, FE_CONSTANTS.CAMERA_LERP_SPEED));
     }
 
     private updateWorm(

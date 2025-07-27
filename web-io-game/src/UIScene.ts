@@ -1,6 +1,6 @@
 import Phaser from "phaser";
-import { GAME_CONSTANTS } from "./constants";
 import GameSettings from "./GameSettings";
+import { GAME_CONSTANTS } from "@beyondworm/shared";
 
 export default class UIScene extends Phaser.Scene {
     private foodText!: Phaser.GameObjects.Text;
