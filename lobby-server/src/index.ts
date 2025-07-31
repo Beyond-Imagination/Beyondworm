@@ -1,6 +1,8 @@
 import express, { Request, Response } from "express";
+import cors from "cors";
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
@@ -15,7 +17,7 @@ interface GameServer {
 // 서버 ID를 키로 사용하여 서버 정보를 저장하는 Map
 const serverCache = new Map<string, GameServer>();
 
-const SERVER_TIMEOUT = 30000; // 30초
+const SERVER_TIMEOUT = 300000; // 300초
 
 // 1) 게임 서버 등록 및 정보 업데이트 엔드포인트
 app.post("/server/register", (req: Request, res: Response) => {

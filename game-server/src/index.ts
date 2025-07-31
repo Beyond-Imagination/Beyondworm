@@ -10,7 +10,7 @@ import { setupSocketHandlers } from "./socket/handlers";
 
 dotenv.config(); // .env 로드
 
-const PORT = Number(process.env.PORT ?? 3000);
+const PORT = Number(process.env.PORT ?? 3001);
 
 /**
  * Express 앱을 설정합니다.
@@ -25,8 +25,13 @@ function setupExpressApp(): express.Application {
  * Socket.IO 서버를 생성합니다.
  */
 function createSocketIOServer(httpServer: Server): SocketIOServer {
+    console.log("CORS_ORIGIN:", process.env.CORS_ORIGIN);
     return new SocketIOServer(httpServer, {
-        cors: { origin: process.env.CORS_ORIGIN }, // .env 파일에 CORS_ORIGIN="http://your.frontend.domain" 형식으로 설정
+        cors: {
+            origin: process.env.CORS_ORIGIN, // .env 파일에 CORS_ORIGIN="http://your.frontend.domain" 형식으로 설정
+            methods: ["GET", "POST"],
+            credentials: true,
+        },
     });
 }
 
@@ -177,43 +182,78 @@ function createGameLoop(
     return gameLoop;
 }
 
+/**
+ * 로비 서버에 게임 서버를 등록합니다.
+ */
+async function registerToLobbyServer() {
+    const lobbyUrl = process.env.LOBBY_SERVER_URL || "http://localhost:3000";
+    const serverId = "game-server-1";
+    const address = `http://localhost:${PORT}`;
+
+    try {
+        const res = await fetch(`${lobbyUrl}/server/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ serverId, address }),
+        });
+        const data = await res.json();
+        console.log("Lobby 등록 결과:", data);
+        return true;
+    } catch (err) {
+        console.error("Lobby 등록 실패:", err);
+        return false;
+    }
+}
+
 // --- 메인 서버 초기화 ---
 
-const app = setupExpressApp();
-const httpServer = createServer(app);
-const io = createSocketIOServer(httpServer);
+async function main() {
+    // 1. 로비 서버에 등록 시도
+    const registered = await registerToLobbyServer();
+    if (!registered) {
+        console.error("로비 서버 등록에 실패하여 서버를 시작하지 않습니다.");
+        process.exit(1);
+    }
 
-/**
- * 서버에서 관리하는 모든 지렁이들 (플레이어 + 봇)
- * Key: wormId, Value: Worm
- */
-const worms = new Map<string, Worm>();
+    // 2. 서버 초기화
+    const app = setupExpressApp();
+    const httpServer = createServer(app);
+    const io = createSocketIOServer(httpServer);
 
-/**
- * 서버에서 관리하는 모든 먹이들
- * Key: foodId, Value: Food
- */
-const foods = new Map<string, Food>();
+    /**
+     * 서버에서 관리하는 모든 지렁이들 (플레이어 + 봇)
+     * Key: wormId, Value: Worm
+     */
+    const worms = new Map<string, Worm>();
 
-/**
- * 각 지렁이의 목표 방향을 저장하는 맵
- * Key: wormId, Value: 목표 방향 (x, y)
- */
-const targetDirections = new Map<string, { x: number; y: number }>();
+    /**
+     * 서버에서 관리하는 모든 먹이들
+     * Key: foodId, Value: Food
+     */
+    const foods = new Map<string, Food>();
 
-/**
- * 각 봇의 움직임 전략을 저장하는 맵
- * Key: wormId, Value: MovementStrategy
- */
-const botMovementStrategies = new Map<string, MovementStrategy>();
+    /**
+     * 각 지렁이의 목표 방향을 저장하는 맵
+     * Key: wormId, Value: 목표 방향 (x, y)
+     */
+    const targetDirections = new Map<string, { x: number; y: number }>();
 
-// Socket.IO 이벤트 핸들러 설정
-setupSocketHandlers(io, worms, foods, targetDirections, botMovementStrategies, manageBots);
+    /**
+     * 각 봇의 움직임 전략을 저장하는 맵
+     * Key: wormId, Value: MovementStrategy
+     */
+    const botMovementStrategies = new Map<string, MovementStrategy>();
 
-// 게임 루프 시작
-const gameLoop = createGameLoop(io, worms, foods, targetDirections, botMovementStrategies);
-gameLoop();
+    // Socket.IO 이벤트 핸들러 설정
+    setupSocketHandlers(io, worms, foods, targetDirections, botMovementStrategies, manageBots);
 
-httpServer.listen(PORT, () => {
-    console.log(`🚀 Server listening on http://localhost:${PORT}`);
-});
+    // 게임 루프 시작
+    const gameLoop = createGameLoop(io, worms, foods, targetDirections, botMovementStrategies);
+    gameLoop();
+
+    httpServer.listen(PORT, () => {
+        console.log(`🚀 Server listening on http://localhost:${PORT}`);
+    });
+}
+
+void main();

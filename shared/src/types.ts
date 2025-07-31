@@ -52,3 +52,9 @@ export interface Action {
     type: string;
     payload: unknown;
 }
+
+export interface GameServer {
+    address: string;
+    playerCount: number;
+    lastSeen: number;
+}

@@ -29,8 +29,13 @@ export default class GameScene extends Phaser.Scene {
     }
 
     create() {
+        // 트랜지션 효과를 위해 시작 시 투명하게 설정
+        this.cameras.main.setAlpha(0);
+
         // 서버 연결
-        this.gameClient = new GameClient(this);
+        //this.gameClient = new GameClient(this);
+        const serverAddress = this.game.registry.get("serverAddress") as string;
+        this.gameClient = new GameClient(this, serverAddress);
         this.gameClient.startSendingDirection();
 
         // 개발 환경에서만 치트 등록

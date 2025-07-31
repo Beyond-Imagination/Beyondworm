@@ -6,11 +6,11 @@ export default class GameClient {
     private socket: Socket;
     private directionSender: NodeJS.Timeout | null = null; // 타이머 ID 저장 변수
 
-    constructor(private scene: GameScene) {
-        // .env 파일에 VITE_GAME_SERVER_URL="http://server.url:PORT" 형식으로 설정합니다.
-        const gameServerUrl = import.meta.env.VITE_GAME_SERVER_URL || "http://localhost:3000";
+    constructor(
+        private scene: GameScene,
+        gameServerUrl: string,
+    ) {
         this.socket = io(gameServerUrl);
-
         this.setupEventListeners();
     }
 
