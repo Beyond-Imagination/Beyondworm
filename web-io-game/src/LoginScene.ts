@@ -27,11 +27,10 @@ export default class LoginScene extends Phaser.Scene {
         const serverListElement = loginDom.getChildByID("server-list") as HTMLUListElement;
 
         startButton.addEventListener("click", () => {
-            // TODO: 로비 서버 구현 후, 수정
-            // if (!this.selectedServer) {
-            //     alert("서버를 선택해주세요.");
-            //     return;
-            // }
+            if (!this.selectedServer) {
+                alert("서버를 선택해주세요.");
+                return;
+            }
 
             const username = usernameInput.value.trim();
             if (!username) {
@@ -40,8 +39,7 @@ export default class LoginScene extends Phaser.Scene {
                 return;
             }
             this.game.registry.set("username", username);
-            // TODO: 로비 서버 구현 후, 수정
-            // this.game.registry.set("serverAddress", this.selectedServer.address);
+            this.game.registry.set("serverAddress", this.selectedServer.address);
 
             // UIScene 실행 및 GameScene 전환
             this.scene.launch("UIScene");

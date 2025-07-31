@@ -71,11 +71,13 @@ export default class UIScene extends Phaser.Scene {
     update() {
         // GameScene의 인스턴스 가져오기
         const gameScene = this.scene.get("GameScene") as import("./GameScene").default;
-        if (gameScene && Array.isArray(gameScene.playerState.segments)) {
+        if (gameScene && gameScene.playerState && Array.isArray(gameScene.playerState.segments)) {
             // 먹은 먹이 수 = 현재 세그먼트 개수 - 기본 세그먼트 개수
             const defaultCount = GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT ?? 0;
             const eatenCount = (gameScene.playerState.segments?.length ?? 0) - defaultCount;
             this.foodText.setText(`🍎 ${eatenCount}`);
+        } else {
+            this.foodText.setText(`🍎 0`);
         }
 
         // 개발 환경에서만 디버그 업데이트
@@ -91,21 +93,6 @@ export default class UIScene extends Phaser.Scene {
             .map(([k, v]) => `${k}: ${v}`)
             .join("\n");
 
-        // WormSpawner 풀 상태 출력
-        const gameScene = this.scene.get("GameScene") as import("./GameScene").default;
-        let poolInfo = "";
-        if (gameScene && gameScene.wormSpawner) {
-            const spawner = gameScene.wormSpawner as any;
-            poolInfo += "\n[Worm Pool]\n";
-            poolInfo += `Player: ${spawner.wormQueues?.[0]?.length ?? "-"}\n`;
-            poolInfo += `Bot-PlayerTracker: ${spawner.wormQueues?.[1]?.[0]?.length ?? "-"}\n`;
-            poolInfo += `Bot-FoodSeeker: ${spawner.wormQueues?.[1]?.[1]?.length ?? "-"}\n`;
-            // cacheHit/cacheMiss 등도 추가하고 싶으면 WormSpawner에 public으로 선언 필요
-            if (spawner.cacheHit !== undefined && spawner.cacheMiss !== undefined) {
-                poolInfo += `cacheHit: ${spawner.cacheHit}, cacheMiss: ${spawner.cacheMiss}\n`;
-            }
-        }
-
-        this.debugText.setText(lines + poolInfo);
+        this.debugText.setText(lines);
     }
 }
