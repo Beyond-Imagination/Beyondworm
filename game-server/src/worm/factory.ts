@@ -84,6 +84,7 @@ export function createBotWorm(botType: BotType): Worm {
         direction: generateRandomDirection(),
         isSprinting: false,
         color: getRandomBotColor(),
+        isDead: false,
     };
 }
 
@@ -100,5 +101,6 @@ export function createPlayerWorm(playerId: string): Worm {
         direction: generateRandomDirection(),
         isSprinting: false,
         color: 0xff0000, // 플레이어는 빨간색
+        isDead: false,
     };
 }

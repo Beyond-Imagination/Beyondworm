@@ -34,6 +34,7 @@ export interface Worm {
     direction: { x: number; y: number };
     isSprinting: boolean;
     color: number; // 지렁이 색상
+    isDead: boolean; // 죽음 상태
 }
 
 export interface GameRoom {
