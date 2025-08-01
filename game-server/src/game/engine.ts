@@ -357,29 +357,37 @@ export function validateAndProcessCollision(
  * 서버에서 직접 모든 지렁이 간의 충돌을 감지하고 처리합니다.
  */
 export function handleWormCollisions(worms: Map<string, Worm>): { killedWormId: string; killerWormId: string }[] {
-    const collisions: { killedWormId: string; killerWormId: string }[] = [];
+    const collisionsToProcess: { killed: Worm; killer: Worm }[] = [];
     const allWorms = Array.from(worms.values());
 
     // O(n^2) 충돌 검사지만 봇 개수가 적을테니 성능에 큰 영향은 없을 것
-    for (let i = 0; i < allWorms.length; i++) {
-        const worm1 = allWorms[i];
+    for (const bodyWorm of allWorms) {
         // 봇이 아니거나 죽은 지렁이의 몸통은 충돌 검사하지 않음
-        if (worm1.isDead || worm1.type != WormType.Bot) continue;
+        if (bodyWorm.isDead || bodyWorm.type !== WormType.Bot) continue;
 
-        for (let j = 0; j < allWorms.length; j++) {
-            const worm2 = allWorms[j];
-            if (worm2.isDead) continue;
+        for (const headWorm of allWorms) {
+            if (headWorm.isDead) continue;
 
-            // worm2의 머리가 worm1의 몸통에 충돌했는지 확인
-            if (checkHeadToBodyCollision(worm2, worm1)) {
-                killWorm(worm2);
-                collisions.push({ killedWormId: worm2.id, killerWormId: worm1.id });
-                console.log(`💥 Server collision: ${worm2.id} died by hitting ${worm1.id}'s body`);
+            // headWorm의 머리가 bodyWorm의 몸통에 충돌했는지 확인
+            if (checkHeadToBodyCollision(headWorm, bodyWorm)) {
+                collisionsToProcess.push({ killed: headWorm, killer: bodyWorm });
             }
         }
     }
 
-    return collisions;
+    const finalCollisions: { killedWormId: string; killerWormId: string }[] = [];
+    const killedThisTick = new Set<string>();
+
+    for (const { killed, killer } of collisionsToProcess) {
+        if (!killed.isDead && !killedThisTick.has(killed.id)) {
+            killWorm(killed);
+            killedThisTick.add(killed.id);
+            finalCollisions.push({ killedWormId: killed.id, killerWormId: killer.id });
+            console.log(`💥 Server collision: ${killed.id} died by hitting ${killer.id}'s body`);
+        }
+    }
+
+    return finalCollisions;
 }
 
 /**

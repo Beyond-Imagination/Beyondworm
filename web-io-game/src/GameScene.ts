@@ -385,7 +385,7 @@ export default class GameScene extends Phaser.Scene {
         const bodyWormId = (bodySegment as Phaser.GameObjects.Arc).getData("wormId") as string;
 
         // 내 몸통에 다른 지렁이의 머리가 충돌한 경우만 리포트
-        if (bodyWormId === this.playerId && headWormId != bodyWormId) {
+        if (bodyWormId === this.playerId && headWormId !== bodyWormId) {
             this.gameClient.reportCollision(headWormId);
             console.log(`💥 Collision reported: ${headWormId} hit my body`);
         }
