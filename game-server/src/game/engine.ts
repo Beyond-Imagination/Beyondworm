@@ -178,9 +178,6 @@ export function updateWorld(
     const allWorms = Array.from(worms.values());
 
     for (const worm of allWorms) {
-        // 죽은 지렁이는 업데이트하지 않음
-        if (worm.isDead) continue;
-
         // 봇인 경우 AI 움직임 업데이트
         if (worm.type === WormType.Bot) {
             updateBotDirection(worm, allWorms, foods, botMovementStrategies, targetDirections);
@@ -261,7 +258,7 @@ export function handleBotFoodCollisions(
 }
 
 /**
- * 이전 틱 ~ 현재 틱까지 죽은 지렁이들을 되살림
+ * 이전 틱이 끝나고 현재 틱이 시작하기전까지 죽은 지렁이들을 되살림
  */
 export function handleRespawns(
     worms: Map<string, Worm>,
@@ -345,22 +342,64 @@ export function validateAndProcessCollision(
         return false;
     }
 
-    const colliderHead = colliderWorm.segments[0];
-
     // 충돌자의 머리가 리포터의 몸통(머리 제외)과 충돌했는지 검증
-    for (let i = 1; i < reporterWorm.segments.length; i++) {
-        const segment = reporterWorm.segments[i];
-        const distance = Math.hypot(colliderHead.x - segment.x, colliderHead.y - segment.y);
-        const collisionDistance = colliderHead.radius + segment.radius;
+    if (checkHeadToBodyCollision(colliderWorm, reporterWorm)) {
+        killWorm(colliderWorm);
+        console.log(`✅ Collision validated: ${colliderWormId} died by hitting ${reporterWormId}`);
+        return true;
+    }
+
+    console.log(`❌ Collision validation failed: ${colliderWormId} vs ${reporterWormId}`);
+    return false;
+}
+
+/**
+ * 서버에서 직접 모든 지렁이 간의 충돌을 감지하고 처리합니다.
+ */
+export function handleWormCollisions(worms: Map<string, Worm>): { killedWormId: string; killerWormId: string }[] {
+    const collisions: { killedWormId: string; killerWormId: string }[] = [];
+    const allWorms = Array.from(worms.values());
+
+    // O(n^2) 충돌 검사지만 봇 개수가 적을테니 성능에 큰 영향은 없을 것
+    for (let i = 0; i < allWorms.length; i++) {
+        const worm1 = allWorms[i];
+        // 봇이 아니거나 죽은 지렁이의 몸통은 충돌 검사하지 않음
+        if (worm1.isDead || worm1.type != WormType.Bot) continue;
+
+        for (let j = 0; j < allWorms.length; j++) {
+            const worm2 = allWorms[j];
+            if (worm2.isDead) continue;
+
+            // worm2의 머리가 worm1의 몸통에 충돌했는지 확인
+            if (checkHeadToBodyCollision(worm2, worm1)) {
+                killWorm(worm2);
+                collisions.push({ killedWormId: worm2.id, killerWormId: worm1.id });
+                console.log(`💥 Server collision: ${worm2.id} died by hitting ${worm1.id}'s body`);
+            }
+        }
+    }
+
+    return collisions;
+}
+
+/**
+ * 한 지렁이의 머리가 다른 지렁이의 몸통에 충돌했는지 확인합니다.
+ */
+function checkHeadToBodyCollision(headWorm: Worm, bodyWorm: Worm): boolean {
+    if (headWorm.id === bodyWorm.id) return false; // 같은 지렁이 제외
+
+    const head = headWorm.segments[0];
+
+    // 머리가 다른 지렁이의 몸통(머리 제외)과 충돌했는지 확인
+    for (let i = 1; i < bodyWorm.segments.length; i++) {
+        const segment = bodyWorm.segments[i];
+        const distance = Math.hypot(head.x - segment.x, head.y - segment.y);
+        const collisionDistance = head.radius + segment.radius;
 
         if (distance < collisionDistance + GAME_CONSTANTS.MAX_COLLISION_TOLERANCE) {
-            // 충돌 확인됨 - 충돌자(머리를 박은 지렁이)를 죽임
-            killWorm(colliderWorm);
-            console.log(`✅ Collision validated: ${colliderWormId} died by hitting ${reporterWormId}`);
             return true;
         }
     }
 
-    console.log(`❌ Collision validation failed: ${colliderWormId} vs ${reporterWormId}`);
     return false;
 }
