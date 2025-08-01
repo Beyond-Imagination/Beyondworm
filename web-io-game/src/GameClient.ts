@@ -52,6 +52,11 @@ export default class GameClient {
             this.scene.handleFoodEatenFromServer(collisions);
         });
 
+        this.socket.on("worm-died", (data: { killedWormId: string; killerWormId: string }) => {
+            // 지렁이가 죽었을 때 처리
+            this.scene.handleWormDiedFromServer(data);
+        });
+
         this.socket.on("disconnect", () => {});
 
         this.socket.on("connect_error", (error) => {
@@ -97,6 +102,13 @@ export default class GameClient {
      */
     public reportFoodEaten(foodId: string) {
         this.socket.emit("food-eaten-report", { foodId });
+    }
+
+    /**
+     * 충돌을 서버에 리포트
+     */
+    public reportCollision(colliderWormId: string) {
+        this.socket.emit("collision-report", { colliderWormId });
     }
 
     /**

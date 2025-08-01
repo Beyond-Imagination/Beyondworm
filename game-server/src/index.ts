@@ -5,7 +5,7 @@ import { Server as SocketIOServer } from "socket.io";
 import { GAME_CONSTANTS, Worm, BotType, Food, WormType } from "@beyondworm/shared";
 import { MovementStrategy } from "./types/movement";
 import { createBotWorm, createMovementStrategy } from "./worm/factory";
-import { updateWorld, updateFoods, handleBotFoodCollisions } from "./game/engine";
+import { updateWorld, updateFoods, handleBotFoodCollisions, handleRespawns } from "./game/engine";
 import { setupSocketHandlers } from "./socket/handlers";
 
 dotenv.config(); // .env 로드
@@ -133,6 +133,9 @@ function updateAndBroadcastGameState(
 
     // 먹이 업데이트 (부족한 먹이 추가)
     updateFoods(foods);
+
+    // 부활 처리
+    handleRespawns(worms, targetDirections, botMovementStrategies);
 
     // 지렁이 상태 업데이트
     updateWorld(deltaTime, worms, foods, targetDirections, botMovementStrategies);

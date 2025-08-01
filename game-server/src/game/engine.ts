@@ -1,7 +1,8 @@
-import { GAME_CONSTANTS, Worm, WormType, Food } from "@beyondworm/shared";
+import { GAME_CONSTANTS, Worm, WormType, Food, BotType } from "@beyondworm/shared";
 import { MovementStrategy } from "../types/movement";
 import { getAngleDifference, vectorToAngle, angleToVector } from "../utils/math";
 import { v4 as uuidv4 } from "uuid";
+import { createBotWorm, createMovementStrategy, createPlayerWorm, createWormSegments } from "../worm/factory";
 
 /**
  * 랜덤 먹이를 생성합니다.
@@ -177,6 +178,9 @@ export function updateWorld(
     const allWorms = Array.from(worms.values());
 
     for (const worm of allWorms) {
+        // 죽은 지렁이는 업데이트하지 않음
+        if (worm.isDead) continue;
+
         // 봇인 경우 AI 움직임 업데이트
         if (worm.type === WormType.Bot) {
             updateBotDirection(worm, allWorms, foods, botMovementStrategies, targetDirections);
@@ -254,4 +258,109 @@ export function handleBotFoodCollisions(
     }
 
     return collisions;
+}
+
+/**
+ * 이전 틱 ~ 현재 틱까지 죽은 지렁이들을 되살림
+ */
+export function handleRespawns(
+    worms: Map<string, Worm>,
+    targetDirections: Map<string, { x: number; y: number }>,
+    botMovementStrategies: Map<string, MovementStrategy>,
+) {
+    for (const wormEntry of worms) {
+        const wormId = wormEntry[0];
+        const worm = wormEntry[1];
+        if (worm.isDead) {
+            if (worm.type === WormType.Bot) {
+                respawnBot(wormId, worms, targetDirections, botMovementStrategies);
+            } else if (worm.type === WormType.Player) {
+                respawnPlayer(worm);
+            }
+        }
+    }
+}
+
+function respawnBot(
+    botId: string,
+    worms: Map<string, Worm>,
+    targetDirections: Map<string, { x: number; y: number }>,
+    botMovementStrategies: Map<string, MovementStrategy>,
+): void {
+    // 기존 봇 데이터 제거
+    worms.delete(botId);
+    targetDirections.delete(botId);
+    botMovementStrategies.delete(botId);
+
+    // 새로운 랜덤 타입의 봇 생성
+    const botTypeCount = Object.keys(BotType).length / 2;
+    const botType = Math.floor(Math.random() * botTypeCount) as BotType;
+    const newBot = createBotWorm(botType);
+    newBot.id = botId;
+
+    // 새 봇 데이터 저장
+    worms.set(botId, newBot);
+    targetDirections.set(botId, { x: newBot.direction.x, y: newBot.direction.y });
+    botMovementStrategies.set(botId, createMovementStrategy(botType));
+
+    console.log(`🤖 Bot ${botId} respawned as type ${botType}`);
+}
+
+/**
+ * TODO 해당 메소드는 추후 사라지고 로비로 유저를 보내는 로직이 있어야함
+ */
+function respawnPlayer(worm: Worm): void {
+    // 기존 지렁이의 ID를 유지하면서 새로 생성
+    const newWorm = createPlayerWorm(worm.id);
+    Object.assign(worm, newWorm);
+
+    console.log(`🔄 Worm respawned: ${worm.id}`);
+}
+
+/**
+ * 지렁이를 죽이고 다음 틱이 시작되면 되살림
+ */
+function killWorm(worm: Worm): void {
+    console.log(`💀 Killing worm: ${worm.id}`);
+    worm.isDead = true;
+}
+
+/**
+ * 클라이언트 리포트 기반으로 충돌을 검증하고 처리합니다.
+ */
+export function validateAndProcessCollision(
+    reporterWormId: string,
+    colliderWormId: string,
+    worms: Map<string, Worm>,
+): boolean {
+    const reporterWorm = worms.get(reporterWormId);
+    const colliderWorm = worms.get(colliderWormId);
+
+    if (!reporterWorm || !colliderWorm) {
+        return false; // 지렁이가 존재하지 않음
+    }
+
+    // 죽은 지렁이는 충돌 검증하지 않음
+    if (reporterWorm.isDead || colliderWorm.isDead) {
+        return false;
+    }
+
+    const colliderHead = colliderWorm.segments[0];
+
+    // 충돌자의 머리가 리포터의 몸통(머리 제외)과 충돌했는지 검증
+    for (let i = 1; i < reporterWorm.segments.length; i++) {
+        const segment = reporterWorm.segments[i];
+        const distance = Math.hypot(colliderHead.x - segment.x, colliderHead.y - segment.y);
+        const collisionDistance = colliderHead.radius + segment.radius;
+
+        if (distance < collisionDistance + GAME_CONSTANTS.MAX_COLLISION_TOLERANCE) {
+            // 충돌 확인됨 - 충돌자(머리를 박은 지렁이)를 죽임
+            killWorm(colliderWorm);
+            console.log(`✅ Collision validated: ${colliderWormId} died by hitting ${reporterWormId}`);
+            return true;
+        }
+    }
+
+    console.log(`❌ Collision validation failed: ${colliderWormId} vs ${reporterWormId}`);
+    return false;
 }
