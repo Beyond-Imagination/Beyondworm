@@ -285,6 +285,10 @@ function respawnBot(
     botMovementStrategies: Map<string, MovementStrategy>,
 ): void {
     // 기존 봇 데이터 제거
+    const bot = worms.get(botId);
+    if (!bot) {
+        return;
+    }
     worms.delete(botId);
     targetDirections.delete(botId);
     botMovementStrategies.delete(botId);
@@ -294,6 +298,7 @@ function respawnBot(
     const botType = Math.floor(Math.random() * botTypeCount) as BotType;
     const newBot = createBotWorm(botType);
     newBot.id = botId;
+    newBot.color = bot.color; // 기존 봇의 색상 유지
 
     // 새 봇 데이터 저장
     worms.set(botId, newBot);
