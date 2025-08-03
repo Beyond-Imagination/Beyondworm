@@ -173,7 +173,7 @@ export default class GameScene extends Phaser.Scene {
 
         for (let i = 0; i < serverWorm.segments.length; i++) {
             const serverSegment = serverWorm.segments[i];
-            const segment = this.add.circle(serverSegment.x, serverSegment.y, serverSegment.radius, serverWorm.color);
+            const segment = this.add.circle(serverSegment.x, serverSegment.y, serverWorm.radius, serverWorm.color);
             segment.setStrokeStyle(4, 0x333333);
             segment.setDepth(FE_CONSTANTS.ZORDER_SEGMENT - i);
 
@@ -234,22 +234,12 @@ export default class GameScene extends Phaser.Scene {
             const clientSegment = clientWorm.segments[i];
             const serverSegment = serverWorm.segments[i];
 
-            clientSegment.x = Phaser.Math.Linear(
-                clientSegment.x,
-                serverSegment.x,
-                FE_CONSTANTS.WORM_POSITION_LERP_FACTOR,
-            );
-            clientSegment.y = Phaser.Math.Linear(
-                clientSegment.y,
-                serverSegment.y,
-                FE_CONSTANTS.WORM_POSITION_LERP_FACTOR,
-            );
+            clientSegment.x = serverSegment.x;
+            clientSegment.y = serverSegment.y;
 
-            // 반지름 보간
-            const newRadius = Phaser.Math.Linear(clientSegment.radius, serverSegment.radius, 0.1);
-            clientSegment.setRadius(newRadius);
+            clientSegment.setRadius(serverWorm.radius);
             if (clientSegment.body) {
-                (clientSegment.body as Phaser.Physics.Arcade.Body).setCircle(newRadius);
+                (clientSegment.body as Phaser.Physics.Arcade.Body).setCircle(serverWorm.radius);
             }
         }
 

@@ -29,7 +29,6 @@ function createWormSegments(): WormSegment[] {
         segments.push({
             x: startPosition.x - i * GAME_CONSTANTS.SEGMENT_SPACING,
             y: startPosition.y,
-            radius: GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS,
         });
     }
     return segments;
@@ -85,6 +84,8 @@ export function createBotWorm(botType: BotType): Worm {
         isSprinting: false,
         color: getRandomBotColor(),
         isDead: false,
+        radius: GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS,
+        sprintFoodDropTimer: 0,
     };
 }
 
@@ -102,5 +103,7 @@ export function createPlayerWorm(playerId: string): Worm {
         isSprinting: false,
         color: 0xff0000, // 플레이어는 빨간색
         isDead: false,
+        radius: GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS,
+        sprintFoodDropTimer: 0,
     };
 }
