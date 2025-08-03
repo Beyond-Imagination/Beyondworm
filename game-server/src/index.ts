@@ -5,7 +5,14 @@ import { Server as SocketIOServer } from "socket.io";
 import { GAME_CONSTANTS, Worm, BotType, Food, WormType } from "@beyondworm/shared";
 import { MovementStrategy } from "./types/movement";
 import { createBotWorm, createMovementStrategy } from "./worm/factory";
-import { updateWorld, updateFoods, handleBotFoodCollisions, handleRespawns, handleWormCollisions } from "./game/engine";
+import {
+    updateWorld,
+    updateFoods,
+    handleBotFoodCollisions,
+    handleRespawns,
+    handleWormCollisions,
+    handleSprintFoodDrop,
+} from "./game/engine";
 import { setupSocketHandlers } from "./socket/handlers";
 
 dotenv.config(); // .env 로드
@@ -137,11 +144,14 @@ function updateAndBroadcastGameState(
     // 부활 처리
     handleRespawns(worms, targetDirections, botMovementStrategies);
 
+    // 스프린트 중 먹이 떨어뜨리기 처리
+    handleSprintFoodDrop(worms, foods, deltaTime);
+
     // 지렁이 상태 업데이트
     updateWorld(deltaTime, worms, foods, targetDirections, botMovementStrategies);
 
     // 서버에서 직접 모든 지렁이 간의 충돌 감지 및 처리
-    const wormCollisions = handleWormCollisions(worms);
+    const wormCollisions = handleWormCollisions(worms, foods);
 
     // 지렁이 충돌이 발생했다면 클라이언트들에게 알림
     if (wormCollisions.length > 0) {
