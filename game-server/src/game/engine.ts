@@ -37,6 +37,10 @@ export function updateFoods(foods: Map<string, Food>): void {
     }
 }
 
+function updateWormRadius(worm: Worm): void {
+    worm.radius = worm.score * GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS + GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS;
+}
+
 /**
  * 지렁이가 먹이를 먹었을 때의 처리를 합니다.
  */
@@ -44,8 +48,7 @@ export function processFoodEaten(worm: Worm): void {
     // 점수 증가
     worm.score += 1;
 
-    // 세그먼트 반지름 증가
-    worm.radius = worm.score * GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS + GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS;
+    updateWormRadius(worm); // 반지름 업데이트
 
     // 새 세그먼트 추가
     const lastSegment = worm.segments[worm.segments.length - 1];
@@ -439,7 +442,7 @@ function checkHeadToBodyCollision(headWorm: Worm, bodyWorm: Worm): boolean {
 export function handleSprintFoodDrop(worms: Map<string, Worm>, foods: Map<string, Food>, dt: number): void {
     for (const worm of worms.values()) {
         // 스프린트중이면서 죽지 않았고 점수가 0 이상인 지렁이만 처리
-        if (!worm.isSprinting || worm.isDead || worm.score == 0) continue;
+        if (!worm.isSprinting || worm.isDead || worm.score <= 0) continue;
 
         worm.sprintFoodDropTimer += dt * 1000; // ms 단위로 타이머 증가
 
@@ -455,7 +458,7 @@ export function handleSprintFoodDrop(worms: Map<string, Worm>, foods: Map<string
 
                 // 점수 감소
                 worm.score = Math.max(0, worm.score - 1);
-                worm.radius = worm.score * GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS + GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS;
+                updateWormRadius(worm); // 반지름 업데이트
 
                 console.log(
                     `🏃 Sprint food drop: Worm ${worm.id} dropped food at (${tailSegment.x}, ${tailSegment.y})`,
@@ -469,7 +472,7 @@ export function handleSprintFoodDrop(worms: Map<string, Worm>, foods: Map<string
  * 지렁이가 죽을 때 몸통을 따라 먹이를 떨어뜨립니다.
  */
 export function dropFoodOnDeath(worm: Worm, foods: Map<string, Food>): void {
-    const foodCount = worm.score / 2; // 죽을 때 점수의 반만큼 먹이 생성
+    const foodCount = Math.floor(worm.score / 2); // 죽을 때 점수의 반만큼 먹이 생성
 
     if (foodCount <= 0) return;
 
