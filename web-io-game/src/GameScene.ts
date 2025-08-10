@@ -34,7 +34,13 @@ export default class GameScene extends Phaser.Scene {
 
     create() {
         // 화면 크기에 맞는 배경 타일 스프라이트 추가 (효율적인 방식)
-        this.bg = this.add.tileSprite(GAME_CONSTANTS.MAP_WIDTH/2, GAME_CONSTANTS.MAP_HEIGHT/2, GAME_CONSTANTS.MAP_WIDTH, GAME_CONSTANTS.MAP_HEIGHT, "background_pattern");
+        this.bg = this.add.tileSprite(
+            GAME_CONSTANTS.MAP_WIDTH / 2,
+            GAME_CONSTANTS.MAP_HEIGHT / 2,
+            GAME_CONSTANTS.MAP_WIDTH,
+            GAME_CONSTANTS.MAP_HEIGHT,
+            "background_pattern",
+        );
         this.bg.setOrigin(0.5, 0.5); // 화면 중앙에 배치하기 위해 원점 설정
         this.bg.setDepth(-10); // 다른 모든 게임 요소보다 뒤에 있도록 설정
 
