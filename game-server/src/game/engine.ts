@@ -2,19 +2,29 @@ import { GAME_CONSTANTS, Worm, WormType, Food, BotType } from "@beyondworm/share
 import { MovementStrategy } from "../types/movement";
 import { getAngleDifference, vectorToAngle, angleToVector } from "../utils/math";
 import { v4 as uuidv4 } from "uuid";
-import { createBotWorm, createMovementStrategy, createPlayerWorm, createWormSegments } from "../worm/factory";
+import { createBotWorm, createMovementStrategy, createPlayerWorm } from "../worm/factory";
+
+/**
+ * 특정 위치에 먹이를 생성합니다.
+ */
+export function createFoodAtPosition(x: number, y: number): Food {
+    return {
+        id: `food_${uuidv4()}`,
+        x: x,
+        y: y,
+        radius: GAME_CONSTANTS.FOOD_RADIUS,
+        color: GAME_CONSTANTS.FOOD_COLOR,
+    };
+}
 
 /**
  * 랜덤 먹이를 생성합니다.
  */
 export function createRandomFood(): Food {
-    return {
-        id: `food_${uuidv4()}`,
-        x: Math.random() * (GAME_CONSTANTS.MAP_WIDTH - 200) + 100,
-        y: Math.random() * (GAME_CONSTANTS.MAP_HEIGHT - 200) + 100,
-        radius: GAME_CONSTANTS.FOOD_RADIUS,
-        color: GAME_CONSTANTS.FOOD_COLOR, // 빨간색
-    };
+    return createFoodAtPosition(
+        Math.random() * (GAME_CONSTANTS.MAP_WIDTH - 200) + 100,
+        Math.random() * (GAME_CONSTANTS.MAP_HEIGHT - 200) + 100,
+    );
 }
 
 /**
@@ -27,6 +37,10 @@ export function updateFoods(foods: Map<string, Food>): void {
     }
 }
 
+function updateWormRadius(worm: Worm): void {
+    worm.radius = worm.score * GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS + GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS;
+}
+
 /**
  * 지렁이가 먹이를 먹었을 때의 처리를 합니다.
  */
@@ -34,17 +48,13 @@ export function processFoodEaten(worm: Worm): void {
     // 점수 증가
     worm.score += 1;
 
-    // 세그먼트 반지름 증가
-    for (const segment of worm.segments) {
-        segment.radius += GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS;
-    }
+    updateWormRadius(worm); // 반지름 업데이트
 
     // 새 세그먼트 추가
     const lastSegment = worm.segments[worm.segments.length - 1];
     worm.segments.push({
         x: lastSegment.x,
         y: lastSegment.y,
-        radius: GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS + GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS * worm.score,
     });
 }
 
@@ -107,7 +117,8 @@ function updateWormHead(worm: Worm, deltaTime: number): void {
         const normalizedDirX = dirX / magnitude;
         const normalizedDirY = dirY / magnitude;
 
-        const speed = worm.isSprinting ? GAME_CONSTANTS.HEAD_SPRINT_SPEED : GAME_CONSTANTS.HEAD_SPEED;
+        // 스프린트 중이면서 점수가 0 이상일 때만 스프린트 속도 적용
+        const speed = worm.isSprinting && worm.score > 0 ? GAME_CONSTANTS.HEAD_SPRINT_SPEED : GAME_CONSTANTS.HEAD_SPEED;
 
         // 머리 위치 업데이트
         const head = worm.segments[0];
@@ -208,7 +219,7 @@ export function validateAndProcessFoodEaten(
 
     // 먹이와의 실제 거리 검증
     const foodDistance = Math.hypot(head.x - food.x, head.y - food.y);
-    const collisionDistance = head.radius + food.radius;
+    const collisionDistance = worm.radius + food.radius;
 
     // 머리 중심좌표로 부터 먹이 중심좌표까지의 거리가 머리와 먹이의 반지름 합에 약간의 보정치를 더한값보다 크면 검증실패
     if (foodDistance > collisionDistance + GAME_CONSTANTS.MAX_COLLISION_TOLERANCE) {
@@ -242,7 +253,7 @@ export function handleBotFoodCollisions(
 
         for (const food of foods.values()) {
             const distance = Math.hypot(head.x - food.x, head.y - food.y);
-            const collisionDistance = head.radius + food.radius;
+            const collisionDistance = worm.radius + food.radius;
 
             if (distance < collisionDistance) {
                 // 봇이 먹이를 먹음
@@ -322,8 +333,12 @@ function respawnPlayer(worm: Worm): void {
 /**
  * 지렁이를 죽이고 다음 틱이 시작되면 되살림
  */
-function killWorm(worm: Worm): void {
+function killWorm(worm: Worm, foods: Map<string, Food>): void {
     console.log(`💀 Killing worm: ${worm.id}`);
+
+    // 죽기 전에 먹이 떨어뜨리기
+    dropFoodOnDeath(worm, foods);
+
     worm.isDead = true;
 }
 
@@ -334,6 +349,7 @@ export function validateAndProcessCollision(
     reporterWormId: string,
     colliderWormId: string,
     worms: Map<string, Worm>,
+    foods: Map<string, Food>,
 ): boolean {
     const reporterWorm = worms.get(reporterWormId);
     const colliderWorm = worms.get(colliderWormId);
@@ -349,7 +365,7 @@ export function validateAndProcessCollision(
 
     // 충돌자의 머리가 리포터의 몸통(머리 제외)과 충돌했는지 검증
     if (checkHeadToBodyCollision(colliderWorm, reporterWorm)) {
-        killWorm(colliderWorm);
+        killWorm(colliderWorm, foods);
         console.log(`✅ Collision validated: ${colliderWormId} died by hitting ${reporterWormId}`);
         return true;
     }
@@ -361,7 +377,10 @@ export function validateAndProcessCollision(
 /**
  * 서버에서 직접 모든 지렁이 간의 충돌을 감지하고 처리합니다.
  */
-export function handleWormCollisions(worms: Map<string, Worm>): { killedWormId: string; killerWormId: string }[] {
+export function handleWormCollisions(
+    worms: Map<string, Worm>,
+    foods: Map<string, Food>,
+): { killedWormId: string; killerWormId: string }[] {
     const collisionsToProcess: { killed: Worm; killer: Worm }[] = [];
     const allWorms = Array.from(worms.values());
 
@@ -385,7 +404,7 @@ export function handleWormCollisions(worms: Map<string, Worm>): { killedWormId: 
 
     for (const { killed, killer } of collisionsToProcess) {
         if (!killed.isDead && !killedThisTick.has(killed.id)) {
-            killWorm(killed);
+            killWorm(killed, foods);
             killedThisTick.add(killed.id);
             finalCollisions.push({ killedWormId: killed.id, killerWormId: killer.id });
             console.log(`💥 Server collision: ${killed.id} died by hitting ${killer.id}'s body`);
@@ -402,12 +421,12 @@ function checkHeadToBodyCollision(headWorm: Worm, bodyWorm: Worm): boolean {
     if (headWorm.id === bodyWorm.id) return false; // 같은 지렁이 제외
 
     const head = headWorm.segments[0];
+    const collisionDistance = headWorm.radius + bodyWorm.radius;
 
     // 머리가 다른 지렁이의 몸통(머리 제외)과 충돌했는지 확인
     for (let i = 1; i < bodyWorm.segments.length; i++) {
         const segment = bodyWorm.segments[i];
         const distance = Math.hypot(head.x - segment.x, head.y - segment.y);
-        const collisionDistance = head.radius + segment.radius;
 
         if (distance < collisionDistance + GAME_CONSTANTS.MAX_COLLISION_TOLERANCE) {
             return true;
@@ -415,4 +434,56 @@ function checkHeadToBodyCollision(headWorm: Worm, bodyWorm: Worm): boolean {
     }
 
     return false;
+}
+
+/**
+ * 스프린트 중인 지렁이의 먹이 떨어뜨리기를 처리합니다.
+ */
+export function handleSprintFoodDrop(worms: Map<string, Worm>, foods: Map<string, Food>, dt: number): void {
+    for (const worm of worms.values()) {
+        // 스프린트중이면서 죽지 않았고 점수가 0 이상인 지렁이만 처리
+        if (!worm.isSprinting || worm.isDead || worm.score <= 0) continue;
+
+        worm.sprintFoodDropTimer += dt * 1000; // ms 단위로 타이머 증가
+
+        // 달린지 충분한 시간이 지났으면 먹이 떨어뜨리기
+        if (worm.sprintFoodDropTimer >= GAME_CONSTANTS.SPRINT_FOOD_DROP_INTERVAL) {
+            worm.sprintFoodDropTimer -= GAME_CONSTANTS.SPRINT_FOOD_DROP_INTERVAL;
+            // 꼬리 세그먼트 제거
+            const tailSegment = worm.segments.pop();
+            if (tailSegment) {
+                // 제거된 꼬리 위치에 먹이 생성
+                const food = createFoodAtPosition(tailSegment.x, tailSegment.y);
+                foods.set(food.id, food);
+
+                // 점수 감소
+                worm.score = Math.max(0, worm.score - 1);
+                updateWormRadius(worm); // 반지름 업데이트
+
+                console.log(
+                    `🏃 Sprint food drop: Worm ${worm.id} dropped food at (${tailSegment.x}, ${tailSegment.y})`,
+                );
+            }
+        }
+    }
+}
+
+/**
+ * 지렁이가 죽을 때 몸통을 따라 먹이를 떨어뜨립니다.
+ */
+export function dropFoodOnDeath(worm: Worm, foods: Map<string, Food>): void {
+    const foodCount = Math.floor(worm.score / 2); // 죽을 때 점수의 반만큼 먹이 생성
+
+    if (foodCount <= 0) return;
+
+    // 세그먼트들 중에서 균등하게 분배하여 먹이 생성
+    const step = Math.max(1, Math.floor(worm.segments.length / foodCount));
+
+    for (let i = 0; i < worm.segments.length; i += step) {
+        const segment = worm.segments[i];
+        const food = createFoodAtPosition(segment.x, segment.y);
+        foods.set(food.id, food);
+    }
+
+    console.log(`💀 Death food drop: Worm ${worm.id} dropped about ${foodCount} foods`);
 }
