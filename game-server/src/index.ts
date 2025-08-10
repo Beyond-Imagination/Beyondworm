@@ -19,6 +19,12 @@ const PORT = Number(process.env.PORT ?? 3001);
 function setupExpressApp(): express.Application {
     const app = express();
     app.use(express.json());
+
+    // Health check endpoint
+    app.get("/health", (req, res) => {
+        res.status(200).json({ status: "ok" });
+    });
+
     return app;
 }
 

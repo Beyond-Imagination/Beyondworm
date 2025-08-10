@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
+import axios from "axios";
 
 const app = express();
 app.use(cors());
@@ -16,9 +17,6 @@ interface GameServer {
 
 // 서버 ID를 키로 사용하여 서버 정보를 저장하는 Map
 const serverCache = new Map<string, GameServer>();
-
-// TODO: 현재 개발 단계라서 임시 값을 지정해둠. 실제 서비스를 할 때는 시간을 넉넉하게 잡아줘야하고, 게임 서버를 다시 띄워주는 로직도 있어야 한다.
-const SERVER_TIMEOUT = 300000; // 300초
 
 // 1) 게임 서버 등록 및 정보 업데이트 엔드포인트
 app.post("/server/register", (req: Request, res: Response) => {
@@ -72,21 +70,36 @@ app.get("/servers", (req: Request, res: Response) => {
     res.status(200).json(serverList);
 });
 
-// 오래된 서버를 주기적으로 정리하는 로직
-const cleanupInterval = setInterval(() => {
-    const now = Date.now();
-    for (const [serverId, serverInfo] of serverCache.entries()) {
-        if (now - serverInfo.lastSeen > SERVER_TIMEOUT) {
-            serverCache.delete(serverId);
-            console.log(`Removed stale server: ${serverId}`);
-        }
+// 주기적으로 게임 서버 헬스 체크
+const HEALTH_CHECK_INTERVAL = 10000; // 10초마다
+const HEALTH_CHECK_TIMEOUT = 5000; // 5초
+
+const healthCheckInterval = setInterval(() => {
+    console.log("🩺 Running health checks...");
+    if (serverCache.size === 0) {
+        console.log("No servers to check.");
+        return;
     }
-}, 10000); // 10초마다 체크
+
+    serverCache.forEach(async (serverInfo, serverId) => {
+        try {
+            await axios.get(`${serverInfo.address}/health`, { timeout: HEALTH_CHECK_TIMEOUT });
+            // Health check successful
+            console.log(`✅ Health check successful for server ${serverId}`);
+            serverInfo.lastSeen = Date.now();
+            serverCache.set(serverId, serverInfo);
+        } catch (error) {
+            console.error(`❌ Health check failed for server ${serverId} at ${serverInfo.address}:`, error.message);
+            serverCache.delete(serverId);
+            console.log(`Removed unresponsive server: ${serverId}`);
+        }
+    });
+}, HEALTH_CHECK_INTERVAL);
 
 // 서버 종료 시 interval 정리
 function gracefulShutdown() {
-    clearInterval(cleanupInterval);
-    console.log("Interval cleared. Shutting down server.");
+    clearInterval(healthCheckInterval);
+    console.log("Health check interval cleared. Shutting down server.");
     process.exit(0);
 }
 
