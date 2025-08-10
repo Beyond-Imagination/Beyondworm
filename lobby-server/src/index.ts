@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import axios from "axios";
+import { logDetailedError } from "./utils/errorLogger";
 
 const app = express();
 app.use(cors());
@@ -74,25 +75,31 @@ app.get("/servers", (req: Request, res: Response) => {
 const HEALTH_CHECK_INTERVAL = 10000; // 10초마다
 const HEALTH_CHECK_TIMEOUT = 5000; // 5초
 
-const healthCheckInterval = setInterval(() => {
+const healthCheckInterval = setInterval(async () => {
     console.log("🩺 Running health checks...");
     if (serverCache.size === 0) {
         console.log("No servers to check.");
         return;
     }
 
-    serverCache.forEach(async (serverInfo, serverId) => {
+    const serversToRemove: string[] = [];
+    const checkPromises = Array.from(serverCache.entries()).map(async ([serverId, serverInfo]) => {
         try {
             await axios.get(`${serverInfo.address}/health`, { timeout: HEALTH_CHECK_TIMEOUT });
             // Health check successful
             console.log(`✅ Health check successful for server ${serverId}`);
             serverInfo.lastSeen = Date.now();
-            serverCache.set(serverId, serverInfo);
-        } catch (error) {
-            console.error(`❌ Health check failed for server ${serverId} at ${serverInfo.address}:`, error.message);
-            serverCache.delete(serverId);
-            console.log(`Removed unresponsive server: ${serverId}`);
+        } catch (error: unknown) {
+            logDetailedError(error, `❌ Health check failed for server ${serverId} at ${serverInfo.address}:`);
+            serversToRemove.push(serverId);
         }
+    });
+
+    await Promise.all(checkPromises);
+
+    serversToRemove.forEach((serverId) => {
+        serverCache.delete(serverId);
+        console.log(`Removed unresponsive server: ${serverId}`);
     });
 }, HEALTH_CHECK_INTERVAL);
 

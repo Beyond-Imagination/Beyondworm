@@ -1,4 +1,5 @@
 import axios from "axios";
+import { logDetailedError } from "../utils/errorLogger";
 import { v4 as uuidv4 } from "uuid";
 
 const LOBBY_SERVER_URL = process.env.LOBBY_SERVER_URL || "http://localhost:3000";
@@ -12,8 +13,8 @@ export async function registerWithLobby() {
             address: address,
         });
         console.log(`Successfully registered with lobby server at ${LOBBY_SERVER_URL}`);
-    } catch (error) {
-        console.error("Failed to register with lobby server:", error.message);
+    } catch (error: unknown) {
+        logDetailedError(error, "Failed to register with lobby server:");
         // Terminate the process if registration fails, as the server cannot function without it.
         process.exit(1);
     }
@@ -26,7 +27,7 @@ export async function updateServerStatus(status: { playerCount: number }) {
             playerCount: status.playerCount,
         });
         console.log(`Successfully updated server status: ${JSON.stringify(status)}`);
-    } catch (error) {
-        console.error("Failed to update server status on lobby server:", error.message);
+    } catch (error: unknown) {
+        logDetailedError(error, "Failed to update server status on lobby server:");
     }
 }
