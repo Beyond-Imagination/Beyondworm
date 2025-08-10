@@ -22,6 +22,7 @@ export default class GameScene extends Phaser.Scene {
     private serverWorms = new Map<string, Worm>(); // 서버 지렁이 상태
 
     private wormHeadsGroup!: Phaser.Physics.Arcade.Group;
+    private wormBodiesGroup!: Phaser.Physics.Arcade.Group;
     private foodsGroup!: Phaser.Physics.Arcade.Group;
 
     preload() {
@@ -48,8 +49,9 @@ export default class GameScene extends Phaser.Scene {
         // 기본 초기화 (서버에서 데이터가 오면 다시 설정됨)
         this.worms = [];
 
-        // 지렁이 머리들을 그룹에 추가하고 타입 설정
+        // 지렁이 머리들과 몸통들을 그룹에 추가
         this.wormHeadsGroup = this.physics.add.group();
+        this.wormBodiesGroup = this.physics.add.group();
         this.foodsGroup = this.physics.add.group();
 
         // UIScene이 실행 중이 아니면 실행
@@ -59,6 +61,9 @@ export default class GameScene extends Phaser.Scene {
 
         // 그룹 간의 overlap을 한 번만 등록
         this.physics.add.overlap(this.wormHeadsGroup, this.foodsGroup, this.handleFoodCollision, undefined, this);
+
+        // 지렁이 머리와 다른 지렁이 몸통 간의 충돌 감지
+        this.physics.add.overlap(this.wormHeadsGroup, this.wormBodiesGroup, this.handleWormCollision, undefined, this);
 
         // 스페이스바 이벤트
         this.input.keyboard.on("keydown-SPACE", () => {
@@ -101,8 +106,16 @@ export default class GameScene extends Phaser.Scene {
         const wormState = this.createWormStateFromServer(serverWorm);
         this.worms.push(wormState);
 
+        // 머리는 헤드 그룹에, 몸통은 바디 그룹에 추가
         const head = wormState.segments[0];
         this.wormHeadsGroup.add(head);
+
+        // 현재 플레이어의 몸통만 바디 그룹에 추가
+        if (serverWorm.id === this.playerId) {
+            for (let i = 1; i < wormState.segments.length; i++) {
+                this.wormBodiesGroup.add(wormState.segments[i]);
+            }
+        }
     }
 
     /**
@@ -198,12 +211,21 @@ export default class GameScene extends Phaser.Scene {
             newSegment.setData("wormType", serverWorm.type);
 
             clientWorm.segments.push(newSegment);
+
+            // 현재 플레이어의 새 세그먼트만 바디 그룹에 추가 (머리가 아닌 경우)
+            if (serverWorm.id === this.playerId && clientWorm.segments.length > 1) {
+                this.wormBodiesGroup.add(newSegment);
+            }
         }
 
         while (clientWorm.segments.length > serverWorm.segments.length) {
             // 세그먼트 제거
             const removedSegment = clientWorm.segments.pop();
             if (removedSegment) {
+                // 현재 플레이어의 세그먼트만 바디 그룹에서 제거
+                if (serverWorm.id === this.playerId) {
+                    this.wormBodiesGroup.remove(removedSegment, false, false);
+                }
                 removedSegment.destroy();
             }
         }
@@ -304,6 +326,19 @@ export default class GameScene extends Phaser.Scene {
     }
 
     /**
+     * 서버에서 지렁이가 죽었을 때 처리
+     */
+    public handleWormDiedFromServer(data: { killedWormId: string; killerWormId: string }) {
+        console.log(`💀 Worm died: ${data.killedWormId} killed by ${data.killerWormId}`);
+
+        // 죽은 지렁이가 내 플레이어인 경우 카메라 설정을 일시적으로 해제할 수 있음
+        if (data.killedWormId === this.playerId) {
+            console.log("💀 I died!");
+            // 필요시 죽음 효과나 UI 표시 추가 가능
+        }
+    }
+
+    /**
      * 모든 먹이 제거
      */
     private clearAllFoods() {
@@ -335,6 +370,25 @@ export default class GameScene extends Phaser.Scene {
         // 서버에 리포트 (서버에서 검증 후 최종 처리)
         this.gameClient.reportFoodEaten(foodId);
         console.log(`📤 Reported food eaten: ${foodId} at position:`, { x: head.x, y: head.y });
+    }
+
+    /**
+     * 지렁이 간 충돌 핸들러: 머리와 몸통 간의 충돌을 처리
+     */
+    private handleWormCollision(
+        head: Phaser.Types.Physics.Arcade.GameObjectWithBody,
+        bodySegment: Phaser.Types.Physics.Arcade.GameObjectWithBody,
+    ) {
+        if (!this.playerState) return;
+
+        const headWormId = (head as Phaser.GameObjects.Arc).getData("wormId") as string;
+        const bodyWormId = (bodySegment as Phaser.GameObjects.Arc).getData("wormId") as string;
+
+        // 내 몸통에 다른 지렁이의 머리가 충돌한 경우만 리포트
+        if (bodyWormId === this.playerId && headWormId !== bodyWormId) {
+            this.gameClient.reportCollision(headWormId);
+            console.log(`💥 Collision reported: ${headWormId} hit my body`);
+        }
     }
 
     update(_: number, dms: number) {

@@ -1,7 +1,7 @@
 import { Socket, Server as SocketIOServer } from "socket.io";
 import { Worm, Food } from "@beyondworm/shared";
 import { createPlayerWorm } from "../worm/factory";
-import { validateAndProcessFoodEaten } from "../game/engine";
+import { validateAndProcessFoodEaten, validateAndProcessCollision } from "../game/engine";
 import { MovementStrategy } from "../types/movement";
 
 /**
@@ -135,6 +135,24 @@ function handleFoodEatenReport(
 }
 
 /**
+ * 클라이언트로부터 충돌 리포트를 처리합니다.
+ */
+function handleCollisionReport(
+    socket: Socket,
+    io: SocketIOServer,
+    data: { colliderWormId: string },
+    worms: Map<string, Worm>,
+): void {
+    // 클라이언트 리포트 기반으로 충돌 검증 및 처리
+    const success = validateAndProcessCollision(socket.id, data.colliderWormId, worms);
+
+    if (success) {
+        // 검증 성공 - 모든 클라이언트에게 지렁이가 죽었음을 알림
+        io.emit("worm-died", { killedWormId: data.colliderWormId, killerWormId: socket.id });
+    }
+}
+
+/**
  * 소켓 이벤트 핸들러들을 설정합니다.
  */
 export function setupSocketHandlers(
@@ -166,6 +184,11 @@ export function setupSocketHandlers(
         // 먹이 먹기 리포트 이벤트 (리포트 기반 처리)
         socket.on("food-eaten-report", (data: { foodId: string }) => {
             handleFoodEatenReport(socket, io, data, worms, foods);
+        });
+
+        // 충돌 리포트 이벤트 (리포트 기반 처리)
+        socket.on("collision-report", (data: { colliderWormId: string }) => {
+            handleCollisionReport(socket, io, data, worms);
         });
 
         // 스프린트 이벤트들
