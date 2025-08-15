@@ -103,7 +103,12 @@ function manageBots(
     io: SocketIOServer,
 ): void {
     const playerCount = io.engine.clientsCount;
-    const botCount = worms.size - playerCount;
+    let botCount = 0;
+    for (const worm of worms.values()) {
+        if (worm.type === WormType.Bot) {
+            botCount++;
+        }
+    }
 
     if (playerCount === 0) {
         // 서버에 연결된 플레이어가 없으면 모든 봇 제거

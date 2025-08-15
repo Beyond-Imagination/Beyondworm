@@ -299,7 +299,7 @@ export function handleKilledWorms(
     targetDirections: Map<string, { x: number; y: number }>,
     botMovementStrategies: Map<string, MovementStrategy>,
     io: SocketIOServer,
-) {
+): void {
     for (const wormEntry of worms) {
         const wormId = wormEntry[0];
         const worm = wormEntry[1];
