@@ -13,7 +13,6 @@ export enum BotType {
 export interface WormSegment {
     x: number;
     y: number;
-    radius: number;
 }
 
 export interface Food {
@@ -35,6 +34,8 @@ export interface Worm {
     isSprinting: boolean;
     color: number; // 지렁이 색상
     isDead: boolean; // 죽음 상태
+    radius: number;
+    sprintFoodDropTimer: number; // 먹이를 떨어트리는 타이밍을 측정하기위해 스프린팅 시간을 누적한다
 }
 
 export interface GameRoom {
