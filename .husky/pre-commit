@@ -1,6 +1,15 @@
-#!/bin/sh
+#!/bin/sh -e
 . "$(dirname "$0")/_/husky.sh"
+
+echo "Building packages..."
+(cd shared && npm run build)
+(cd lobby-server && npm run build)
+(cd game-server && npm run build)
+echo "Build finished."
+
+echo "Linting packages..."
 (cd web-io-game && npm run lint)
 (cd game-server && npm run lint)
 (cd lobby-server && npm run lint)
 (cd shared && npm run lint)
+echo "Linting finished."
