@@ -150,9 +150,10 @@ function handleCollisionReport(
     io: SocketIOServer,
     data: { colliderWormId: string },
     worms: Map<string, Worm>,
+    foods: Map<string, Food>,
 ): void {
     // 클라이언트 리포트 기반으로 충돌 검증 및 처리
-    const success = validateAndProcessCollision(socket.id, data.colliderWormId, worms);
+    const success = validateAndProcessCollision(socket.id, data.colliderWormId, worms, foods);
 
     if (success) {
         // 검증 성공 - 모든 클라이언트에게 지렁이가 죽었음을 알림
@@ -196,7 +197,7 @@ export function setupSocketHandlers(
 
         // 충돌 리포트 이벤트 (리포트 기반 처리)
         socket.on("collision-report", (data: { colliderWormId: string }) => {
-            handleCollisionReport(socket, io, data, worms);
+            handleCollisionReport(socket, io, data, worms, foods);
         });
 
         // 스프린트 이벤트들

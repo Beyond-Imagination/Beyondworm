@@ -4,6 +4,7 @@ import { WormState } from "./WormState";
 import GameClient from "./GameClient";
 import { Food, GAME_CONSTANTS, Worm } from "@beyondworm/shared";
 import FoodUI from "./FoodUI";
+import bgPatternURL from "/public/background.jpeg?url";
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -24,12 +25,28 @@ export default class GameScene extends Phaser.Scene {
     private wormHeadsGroup!: Phaser.Physics.Arcade.Group;
     private wormBodiesGroup!: Phaser.Physics.Arcade.Group;
     private foodsGroup!: Phaser.Physics.Arcade.Group;
+    private backgroundTileSprite!: Phaser.GameObjects.TileSprite;
+
+    private static readonly BACKGROUND_KEY = "background_pattern";
+    private static readonly BACKGROUND_DEPTH = -10;
 
     preload() {
         // 에셋(이미지, 사운드 등) 로드
+        this.load.image(GameScene.BACKGROUND_KEY, bgPatternURL);
     }
 
     create() {
+        // 화면 크기에 맞는 배경 타일 스프라이트 추가 (효율적인 방식)
+        this.backgroundTileSprite = this.add.tileSprite(
+            GAME_CONSTANTS.MAP_WIDTH / 2,
+            GAME_CONSTANTS.MAP_HEIGHT / 2,
+            GAME_CONSTANTS.MAP_WIDTH,
+            GAME_CONSTANTS.MAP_HEIGHT,
+            "background_pattern",
+        );
+        this.backgroundTileSprite.setOrigin(0.5, 0.5); // 화면 중앙에 배치하기 위해 원점 설정
+        this.backgroundTileSprite.setDepth(GameScene.BACKGROUND_DEPTH); // 다른 모든 게임 요소보다 뒤에 있도록 설정
+
         // 트랜지션 효과를 위해 시작 시 투명하게 설정
         this.cameras.main.setAlpha(0);
 
@@ -173,7 +190,7 @@ export default class GameScene extends Phaser.Scene {
 
         for (let i = 0; i < serverWorm.segments.length; i++) {
             const serverSegment = serverWorm.segments[i];
-            const segment = this.add.circle(serverSegment.x, serverSegment.y, serverSegment.radius, serverWorm.color);
+            const segment = this.add.circle(serverSegment.x, serverSegment.y, serverWorm.radius, serverWorm.color);
             segment.setStrokeStyle(4, 0x333333);
             segment.setDepth(FE_CONSTANTS.ZORDER_SEGMENT - i);
 
@@ -234,22 +251,12 @@ export default class GameScene extends Phaser.Scene {
             const clientSegment = clientWorm.segments[i];
             const serverSegment = serverWorm.segments[i];
 
-            clientSegment.x = Phaser.Math.Linear(
-                clientSegment.x,
-                serverSegment.x,
-                FE_CONSTANTS.WORM_POSITION_LERP_FACTOR,
-            );
-            clientSegment.y = Phaser.Math.Linear(
-                clientSegment.y,
-                serverSegment.y,
-                FE_CONSTANTS.WORM_POSITION_LERP_FACTOR,
-            );
+            clientSegment.x = serverSegment.x;
+            clientSegment.y = serverSegment.y;
 
-            // 반지름 보간
-            const newRadius = Phaser.Math.Linear(clientSegment.radius, serverSegment.radius, 0.1);
-            clientSegment.setRadius(newRadius);
+            clientSegment.setRadius(serverWorm.radius);
             if (clientSegment.body) {
-                (clientSegment.body as Phaser.Physics.Arcade.Body).setCircle(newRadius);
+                (clientSegment.body as Phaser.Physics.Arcade.Body).setCircle(serverWorm.radius);
             }
         }
 
