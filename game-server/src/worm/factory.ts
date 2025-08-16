@@ -15,7 +15,7 @@ export function createMovementStrategy(botType: BotType): MovementStrategy {
             return new PlayerTrackerMovementStrategy();
         default:
             console.error(`Unknown bot type: ${botType}`);
-            return new PlayerTrackerMovementStrategy(); // 기본 전략으로 PlayerTracker 사용
+            throw new Error(`Unknown bot type: ${botType}`);
     }
 }
 
