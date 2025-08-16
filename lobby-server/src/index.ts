@@ -20,11 +20,20 @@ interface GameServer {
 const serverCache = new Map<string, GameServer>();
 
 // 1) 게임 서버 등록 및 정보 업데이트 엔드포인트
-app.post("/server/register", (req: Request, res: Response) => {
+app.post("/server", (req: Request, res: Response) => {
     const { serverId, address } = req.body as { serverId: string; address: string };
 
     if (!serverId || !address) {
         return res.status(400).json({ message: "Missing required server information: serverId, address" });
+    }
+
+    // 주소가 같은 기존 서버를 찾아 삭제
+    for (const [id, server] of serverCache.entries()) {
+        if (server.address === address) {
+            serverCache.delete(id);
+            console.log(`Removed existing server entry for address ${address} with old id ${id}.`);
+            break;
+        }
     }
 
     const now = Date.now();
