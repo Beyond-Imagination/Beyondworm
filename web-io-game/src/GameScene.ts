@@ -445,16 +445,35 @@ export default class GameScene extends Phaser.Scene {
     }
 
     private updateCamera() {
+        // 플레이어가 죽었거나 아직 초기화되지 않은 경우 카메라 업데이트 하지 않음
         if (!this.playerState || !this.playerState.segments || this.playerState.segments.length === 0) {
+            return;
+        }
+
+        // 플레이어의 첫 번째 세그먼트(머리)가 유효한지 확인
+        const headSegment = this.playerState.segments[0];
+        if (!headSegment || !headSegment.active) {
             return;
         }
 
         // 화면에 항상 같은 비율로 보이도록 zoom 계산
         // (세그먼트 반지름이 커져도 화면에서는 항상 같은 비율로 보이게 함)
         const baseRadius = GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS;
-        const currentRadius = this.playerState.segments[0].radius; // 플레이어 기준
+        const currentRadius = headSegment.radius; // 플레이어 기준
         const baseZoom = 1;
         const zoom = baseZoom * (baseRadius / currentRadius);
         this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom, zoom, FE_CONSTANTS.CAMERA_LERP_SPEED));
+    }
+
+    /**
+     * 플레이어가 죽었을 때 DeathScene을 표시합니다.
+     */
+    public showDeathScreen() {
+        console.log("🎮 Showing death screen");
+
+        // DeathScene을 오버레이로 시작 (GameScene은 계속 실행됨)
+        if (!this.scene.isActive("DeathScene")) {
+            this.scene.launch("DeathScene");
+        }
     }
 }
