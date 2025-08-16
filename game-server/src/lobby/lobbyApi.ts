@@ -14,7 +14,7 @@ export async function registerWithLobby() {
         });
         console.log(`Successfully registered with lobby server at ${LOBBY_SERVER_URL}`);
     } catch (error: unknown) {
-        logDetailedError(error, "Failed to register with lobby server:");
+        logDetailedError(error as Error, "Failed to register with lobby server:");
         // Terminate the process if registration fails, as the server cannot function without it.
         process.exit(1);
     }
@@ -28,6 +28,6 @@ export async function updateServerStatus(status: { playerCount: number }) {
         });
         console.log(`Successfully updated server status: ${JSON.stringify(status)}`);
     } catch (error: unknown) {
-        logDetailedError(error, "Failed to update server status on lobby server:");
+        logDetailedError(error as Error, "Failed to update server status on lobby server:");
     }
 }
