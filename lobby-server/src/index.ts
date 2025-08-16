@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import axios from "axios";
-import { logDetailedError } from "./utils/errorLogger";
+import { logDetailedError } from "@beyondworm/shared";
 
 const app = express();
 app.use(cors());
