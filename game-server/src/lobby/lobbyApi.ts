@@ -22,7 +22,7 @@ export async function registerWithLobby() {
 
 export async function updateServerStatus(status: { playerCount: number }) {
     try {
-        await axios.post(`${LOBBY_SERVER_URL}/server/update`, {
+        await axios.patch(`${LOBBY_SERVER_URL}/server`, {
             serverId: SERVER_ID,
             playerCount: status.playerCount,
         });

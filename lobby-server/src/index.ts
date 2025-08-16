@@ -41,7 +41,7 @@ app.post("/server/register", (req: Request, res: Response) => {
 });
 
 // 2) 게임 서버 플레이어 수 업데이트 엔드포인트
-app.post("/server/update", (req: Request, res: Response) => {
+app.patch("/server", (req: Request, res: Response) => {
     const { serverId, playerCount } = req.body as { serverId: string; playerCount: number };
 
     if (!serverId || playerCount === undefined) {
