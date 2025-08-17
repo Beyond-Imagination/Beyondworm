@@ -300,9 +300,7 @@ export function handleKilledWorms(
     botMovementStrategies: Map<string, MovementStrategy>,
     io: SocketIOServer,
 ): void {
-    for (const wormEntry of worms) {
-        const wormId = wormEntry[0];
-        const worm = wormEntry[1];
+    for (const [wormId, worm] of worms) {
         if (worm.isDead) {
             if (worm.type === WormType.Bot) {
                 respawnBot(wormId, worms, targetDirections, botMovementStrategies);
@@ -329,8 +327,8 @@ function respawnBot(
     botMovementStrategies.delete(botId);
 
     // 새로운 랜덤 타입의 봇 생성
-    const botTypeCount = Object.keys(BotType).length / 2;
-    const botType = Math.floor(Math.random() * botTypeCount) as BotType;
+    const numericBotTypes = Object.values(BotType).filter((v) => typeof v === "number") as BotType[];
+    const botType = numericBotTypes[Math.floor(Math.random() * numericBotTypes.length)];
     const newBot = createBotWorm(botType);
     newBot.id = botId;
     newBot.color = bot.color; // 기존 봇의 색상 유지

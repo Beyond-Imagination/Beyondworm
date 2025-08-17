@@ -4,6 +4,7 @@ import { WormState } from "./WormState";
 import GameClient from "./GameClient";
 import { Food, GAME_CONSTANTS, Worm } from "@beyondworm/shared";
 import FoodUI from "./FoodUI";
+import bgPatternURL from "/background.jpeg?url";
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -24,12 +25,28 @@ export default class GameScene extends Phaser.Scene {
     private wormHeadsGroup!: Phaser.Physics.Arcade.Group;
     private wormBodiesGroup!: Phaser.Physics.Arcade.Group;
     private foodsGroup!: Phaser.Physics.Arcade.Group;
+    private backgroundTileSprite!: Phaser.GameObjects.TileSprite;
+
+    private static readonly BACKGROUND_KEY = "background_pattern";
+    private static readonly BACKGROUND_DEPTH = -10;
 
     preload() {
         // 에셋(이미지, 사운드 등) 로드
+        this.load.image(GameScene.BACKGROUND_KEY, bgPatternURL);
     }
 
     create() {
+        // 화면 크기에 맞는 배경 타일 스프라이트 추가 (효율적인 방식)
+        this.backgroundTileSprite = this.add.tileSprite(
+            GAME_CONSTANTS.MAP_WIDTH / 2,
+            GAME_CONSTANTS.MAP_HEIGHT / 2,
+            GAME_CONSTANTS.MAP_WIDTH,
+            GAME_CONSTANTS.MAP_HEIGHT,
+            "background_pattern",
+        );
+        this.backgroundTileSprite.setOrigin(0.5, 0.5); // 화면 중앙에 배치하기 위해 원점 설정
+        this.backgroundTileSprite.setDepth(GameScene.BACKGROUND_DEPTH); // 다른 모든 게임 요소보다 뒤에 있도록 설정
+
         // 트랜지션 효과를 위해 시작 시 투명하게 설정
         this.cameras.main.setAlpha(0);
 
