@@ -5,6 +5,7 @@ import { Food, GAME_CONSTANTS, Worm } from "@beyondworm/shared";
 export default class GameClient {
     private socket: Socket;
     private directionSender: NodeJS.Timeout | null = null; // 타이머 ID 저장 변수
+    private playerId: string | null = null; // 플레이어 ID 저장
 
     constructor(
         private scene: GameScene,
@@ -26,6 +27,7 @@ export default class GameClient {
             console.log("Foods:", data.foods);
             console.log("TICK_MS:", GAME_CONSTANTS.TICK_MS);
 
+            this.playerId = data.id; // 플레이어 ID 저장
             this.scene.initializeFromServer(data.id, data.worms, data.foods);
         });
 
@@ -55,6 +57,11 @@ export default class GameClient {
         this.socket.on("worm-died", (data: { killedWormId: string; killerWormId: string }) => {
             // 지렁이가 죽었을 때 처리
             this.scene.handleWormDiedFromServer(data);
+
+            // 현재 플레이어가 죽으면 DeathScene으로 전환
+            if (data.killedWormId === this.playerId) {
+                this.scene.showDeathScreen();
+            }
         });
 
         this.socket.on("disconnect", () => {});

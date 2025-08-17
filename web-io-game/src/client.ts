@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import GameScene from "./GameScene";
 import UIScene from "./UIScene";
 import LoginScene from "./LoginScene";
+import DeathScene from "./DeathScene";
 
 const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,
@@ -18,7 +19,7 @@ const config: Phaser.Types.Core.GameConfig = {
         createContainer: true,
     },
     // 처음에는 LoginScene만 시작하고, GameScene과 UIScene은 필요할 때 시작합니다.
-    scene: [LoginScene, GameScene, UIScene],
+    scene: [LoginScene, GameScene, UIScene, DeathScene],
     physics: {
         default: "arcade",
         arcade: {
