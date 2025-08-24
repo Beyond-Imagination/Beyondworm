@@ -14,6 +14,7 @@ import {
     handleSprintFoodDrop,
 } from "./game/engine";
 import { setupSocketHandlers } from "./socket/handlers";
+import { registerWithLobby } from "./lobby/lobbyApi";
 
 dotenv.config(); // .env 로드
 
@@ -25,6 +26,12 @@ const PORT = Number(process.env.PORT ?? 3001);
 function setupExpressApp(): express.Application {
     const app = express();
     app.use(express.json());
+
+    // Health check endpoint
+    app.get("/health", (req, res) => {
+        res.status(200).json({ status: "ok" });
+    });
+
     return app;
 }
 
@@ -91,7 +98,7 @@ function removeAllBots(
 /**
  * 현재 접속한 플레이어 수를 반환합니다.
  */
-function getPlayerCount(worms: Map<string, Worm>): number {
+export function getPlayerCount(worms: Map<string, Worm>): number {
     let playerCount = 0;
     for (const worm of worms.values()) {
         if (worm.type === WormType.Player) {
@@ -205,38 +212,11 @@ function createGameLoop(
     return gameLoop;
 }
 
-/**
- * 로비 서버에 게임 서버를 등록합니다.
- */
-async function registerToLobbyServer() {
-    const lobbyUrl = process.env.LOBBY_SERVER_URL || "http://localhost:3000";
-    const serverId = "game-server-1";
-    const address = `http://localhost:${PORT}`;
-
-    try {
-        const res = await fetch(`${lobbyUrl}/server/register`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ serverId, address }),
-        });
-        const data = await res.json();
-        console.log("Lobby 등록 결과:", data);
-        return true;
-    } catch (err) {
-        console.error("Lobby 등록 실패:", err);
-        return false;
-    }
-}
-
 // --- 메인 서버 초기화 ---
 
 async function main() {
-    // 1. 로비 서버에 등록 시도
-    const registered = await registerToLobbyServer();
-    if (!registered) {
-        console.error("로비 서버 등록에 실패하여 서버를 시작하지 않습니다.");
-        process.exit(1);
-    }
+    // 1. 로비 서버에 등록
+    await registerWithLobby();
 
     // 2. 서버 초기화
     const app = setupExpressApp();

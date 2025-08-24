@@ -3,6 +3,8 @@ import { Worm, Food } from "@beyondworm/shared";
 import { createPlayerWorm } from "../worm/factory";
 import { validateAndProcessFoodEaten, validateAndProcessCollision } from "../game/engine";
 import { MovementStrategy } from "../types/movement";
+import { updateServerStatus } from "../lobby/lobbyApi";
+import { getPlayerCount } from "../index";
 
 /**
  * 플레이어 연결 시 초기화를 처리합니다.
@@ -31,6 +33,9 @@ function handlePlayerConnection(
 
     // 봇 관리 (첫 플레이어가 들어오면 봇 생성)
     manageBots(worms, targetDirections, botMovementStrategies);
+
+    // 로비 서버에 플레이어 수 업데이트
+    void updateServerStatus({ playerCount: getPlayerCount(worms) });
 
     // 클라이언트에게 초기 상태 전송
     socket.emit("init", {
@@ -68,6 +73,9 @@ function handlePlayerDisconnection(
 
     // 봇 관리 (마지막 플레이어가 나가면 봇 제거)
     manageBots(worms, targetDirections, botMovementStrategies);
+
+    // 로비 서버에 플레이어 수 업데이트
+    void updateServerStatus({ playerCount: getPlayerCount(worms) });
 
     // 다른 클라이언트들에게 플레이어 떠남 알림
     io.emit("player-left", socket.id);
