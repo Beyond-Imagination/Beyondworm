@@ -158,8 +158,7 @@ export class WormState {
 
             // 최소/최대 폰트 크기 제한
             const minFontSize = 10;
-            const maxFontSize = 24;
-            const clampedFontSize = Math.max(minFontSize, Math.min(maxFontSize, adjustedFontSize));
+            const clampedFontSize = Math.max(minFontSize, adjustedFontSize);
 
             this.nicknameText.setFontSize(clampedFontSize);
         }

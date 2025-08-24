@@ -6,16 +6,26 @@ import { validateAndProcessFoodEaten, validateAndProcessCollision } from "../gam
 /**
  * 플레이어 연결 시 초기화를 처리합니다.
  */
-function handlePlayerConnection(
+function handlePlayerConnection(socket: Socket): void {
+    console.log("🔥 Client connected:", socket.id);
+
+    // username 설정을 기다립니다. 지렁이 생성은 username을 받은 후에 수행
+}
+
+/**
+ * 클라이언트로부터 username을 받아 플레이어 지렁이를 생성합니다.
+ */
+function handleSetUsername(
     socket: Socket,
+    data: { username: string },
     worms: Map<string, Worm>,
     foods: Map<string, Food>,
     targetDirections: Map<string, { x: number; y: number }>,
 ): void {
-    console.log("🔥 Client connected:", socket.id);
+    console.log("🏷️ Username set for", socket.id, ":", data.username);
 
-    // 새로운 플레이어 생성 및 초기 상태 설정
-    const playerWorm = createPlayerWorm(socket.id);
+    // username과 함께 플레이어 지렁이 생성
+    const playerWorm = createPlayerWorm(socket.id, data.username);
 
     // 상태 저장
     worms.set(socket.id, playerWorm);
@@ -144,7 +154,7 @@ export function setupSocketHandlers(
 ): void {
     io.on("connection", (socket: Socket) => {
         // 플레이어 연결 처리
-        handlePlayerConnection(socket, worms, foods, targetDirections);
+        handlePlayerConnection(socket);
 
         // 연결 해제 이벤트
         socket.on("disconnect", () => {
@@ -173,6 +183,11 @@ export function setupSocketHandlers(
 
         socket.on("sprint-stop", () => {
             handleSprintStop(socket, worms);
+        });
+
+        // username 설정 이벤트
+        socket.on("set-username", (data: { username: string }) => {
+            handleSetUsername(socket, data, worms, foods, targetDirections);
         });
     });
 }
