@@ -127,6 +127,9 @@ export default class GameScene extends Phaser.Scene {
         const head = wormState.segments[0];
         this.wormHeadsGroup.add(head);
 
+        // 닉네임 텍스트 생성 및 추가
+        this.createNicknameText(wormState, serverWorm.nickname);
+
         // 현재 플레이어의 몸통만 바디 그룹에 추가
         if (serverWorm.id === this.playerId) {
             for (let i = 1; i < wormState.segments.length; i++) {
@@ -145,6 +148,8 @@ export default class GameScene extends Phaser.Scene {
         if (wormIndex !== -1) {
             const worm = this.worms[wormIndex];
             this.wormHeadsGroup.remove(worm.segments[0], false, false);
+
+            worm.destroyNicknameText();
 
             // 지렁이 세그먼트들 제거
             for (const segment of worm.segments) {
@@ -207,6 +212,31 @@ export default class GameScene extends Phaser.Scene {
     }
 
     /**
+     * 지렁이의 닉네임 텍스트를 생성합니다.
+     */
+    private createNicknameText(wormState: WormState, nickname: string) {
+        if (wormState.segments.length === 0) return;
+
+        const head = wormState.segments[0];
+        const nicknameText = this.add.text(head.x, head.y - head.radius - 20, nickname, {
+            fontSize: "14px",
+            color: "#ffffff",
+            stroke: "#000000",
+            strokeThickness: 2,
+            fontFamily: "Arial, sans-serif",
+        });
+
+        // 텍스트를 중앙 정렬
+        nicknameText.setOrigin(0.5, 0.5);
+
+        // 높은 depth로 설정하여 다른 요소들 위에 표시
+        nicknameText.setDepth(1000);
+
+        // WormState에 닉네임 텍스트 설정
+        wormState.setNicknameText(nicknameText);
+    }
+
+    /**
      * 서버 상태로 개별 지렁이 업데이트 (보간 처리 적용)
      */
     private updateWormFromServer(clientWorm: WormState, serverWorm: Worm) {
@@ -260,6 +290,9 @@ export default class GameScene extends Phaser.Scene {
     private clearAllWorms() {
         for (const worm of this.worms) {
             this.wormHeadsGroup.remove(worm.segments[0], false, false);
+
+            worm.destroyNicknameText();
+
             for (const segment of worm.segments) {
                 segment.destroy();
             }
@@ -392,6 +425,7 @@ export default class GameScene extends Phaser.Scene {
         // 모든 지렁이의 보간 처리 수행
         for (const worm of this.worms) {
             worm.interpolatePositions();
+            worm.updateNicknamePosition(this.cameras.main.zoom);
         }
 
         // 카메라 업데이트

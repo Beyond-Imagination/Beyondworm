@@ -12,6 +12,8 @@ export class WormState {
     public segments: Phaser.GameObjects.Arc[];
     public isSprinting: boolean;
     public wormType: WormType;
+    public nicknameText: Phaser.GameObjects.Text | null = null;
+    private baseFontSize: number = 14; // 기본 폰트 크기
 
     // 보간 처리를 위한 데이터
     public interpolationData: SegmentInterpolationData[] = [];
@@ -133,5 +135,43 @@ export class WormState {
     public removeLastSegment(): Phaser.GameObjects.Arc | undefined {
         this.interpolationData.pop();
         return this.segments.pop();
+    }
+
+    /**
+     * 닉네임 텍스트를 설정합니다.
+     */
+    public setNicknameText(text: Phaser.GameObjects.Text) {
+        this.nicknameText = text;
+    }
+
+    /**
+     * 닉네임 위치를 지렁이 머리 위로 업데이트합니다.
+     */
+    public updateNicknamePosition(cameraZoom: number) {
+        if (this.nicknameText && this.segments.length > 0) {
+            const head = this.segments[0];
+            this.nicknameText.setPosition(head.x, head.y - head.radius - 20);
+
+            // 줌이 작아질수록 텍스트를 크게 만들어서 가독성 유지
+            const scaleFactor = 1 / cameraZoom;
+            const adjustedFontSize = this.baseFontSize * scaleFactor;
+
+            // 최소/최대 폰트 크기 제한
+            const minFontSize = 10;
+            const maxFontSize = 24;
+            const clampedFontSize = Math.max(minFontSize, Math.min(maxFontSize, adjustedFontSize));
+
+            this.nicknameText.setFontSize(clampedFontSize);
+        }
+    }
+
+    /**
+     * 닉네임 텍스트를 제거합니다.
+     */
+    public destroyNicknameText() {
+        if (this.nicknameText) {
+            this.nicknameText.destroy();
+            this.nicknameText = null;
+        }
     }
 }
