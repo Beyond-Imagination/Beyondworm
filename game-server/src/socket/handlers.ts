@@ -22,6 +22,10 @@ function handleSetUsername(
     foods: Map<string, Food>,
     targetDirections: Map<string, { x: number; y: number }>,
 ): void {
+    if (worms.has(socket.id)) {
+        console.warn(`Player ${socket.id} is trying to set username again.`);
+        return;
+    }
     console.log("🏷️ Username set for", socket.id, ":", data.username);
 
     // username과 함께 플레이어 지렁이 생성

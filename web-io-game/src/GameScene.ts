@@ -218,19 +218,18 @@ export default class GameScene extends Phaser.Scene {
         if (wormState.segments.length === 0) return;
 
         const head = wormState.segments[0];
-        const nicknameText = this.add.text(head.x, head.y - head.radius - 20, nickname, {
-            fontSize: "14px",
-            color: "#ffffff",
-            stroke: "#000000",
-            strokeThickness: 2,
-            fontFamily: "Arial, sans-serif",
-        });
+        const nicknameText = this.add.text(
+            head.x,
+            head.y - head.radius - FE_CONSTANTS.NICKNAME_Y_OFFSET,
+            nickname,
+            FE_CONSTANTS.NICKNAME_STYLE,
+        );
 
         // 텍스트를 중앙 정렬
         nicknameText.setOrigin(0.5, 0.5);
 
         // 높은 depth로 설정하여 다른 요소들 위에 표시
-        nicknameText.setDepth(1000);
+        nicknameText.setDepth(FE_CONSTANTS.ZORDER_NICKNAME);
 
         // WormState에 닉네임 텍스트 설정
         wormState.setNicknameText(nicknameText);

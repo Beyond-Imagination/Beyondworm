@@ -37,6 +37,7 @@ module.exports = tseslint.config(
             "@typescript-eslint/unbound-method": "off",
             "@typescript-eslint/no-floating-promises": "off",
             "@typescript-eslint/restrict-template-expressions": "off",
+            "@typescript-eslint/no-base-to-string": "off",
         },
     },
     prettierConfig,

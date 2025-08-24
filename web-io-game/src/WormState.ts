@@ -1,4 +1,5 @@
 import { GAME_CONSTANTS, WormType } from "@beyondworm/shared";
+import { FE_CONSTANTS } from "./constants";
 
 // 세그먼트의 보간 데이터
 interface SegmentInterpolationData {
@@ -150,13 +151,13 @@ export class WormState {
     public updateNicknamePosition(cameraZoom: number) {
         if (this.nicknameText && this.segments.length > 0) {
             const head = this.segments[0];
-            this.nicknameText.setPosition(head.x, head.y - head.radius - 20);
+            this.nicknameText.setPosition(head.x, head.y - head.radius - FE_CONSTANTS.NICKNAME_Y_OFFSET);
 
             // 줌이 작아질수록 텍스트를 크게 만들어서 가독성 유지
             const scaleFactor = 1 / cameraZoom;
             const adjustedFontSize = this.baseFontSize * scaleFactor;
 
-            // 최소/최대 폰트 크기 제한
+            // 최소 폰트 크기 제한
             const minFontSize = 10;
             const clampedFontSize = Math.max(minFontSize, adjustedFontSize);
 
