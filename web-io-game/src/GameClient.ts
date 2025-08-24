@@ -13,6 +13,19 @@ export default class GameClient {
     ) {
         this.socket = io(gameServerUrl);
         this.setupEventListeners();
+
+        // 게임 시작 시 username을 서버로 전송
+        this.sendUserInfo();
+    }
+
+    /**
+     * 사용자 정보를 서버로 전송합니다.
+     */
+    private sendUserInfo() {
+        const username = this.scene.game.registry.get("username") as string;
+        if (username) {
+            this.socket.emit("set-username", { username });
+        }
     }
 
     private setupEventListeners() {
