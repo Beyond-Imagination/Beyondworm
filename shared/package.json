@@ -5,6 +5,9 @@
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "description": "공통 타입, 상수, 유틸리티 등 Beyondworm 전체에서 사용하는 코드",
+    "dependencies": {
+        "axios": "^1.11.0"
+    },
     "scripts": {
         "build": "tsc",
         "lint": "eslint . --fix && prettier --write ."
