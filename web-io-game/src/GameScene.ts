@@ -207,7 +207,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     /**
-     * 서버 상태로 개별 지렁이 업데이트
+     * 서버 상태로 개별 지렁이 업데이트 (보간 처리 적용)
      */
     private updateWormFromServer(clientWorm: WormState, serverWorm: Worm) {
         // 세그먼트 수가 변경된 경우 처리
@@ -227,7 +227,7 @@ export default class GameScene extends Phaser.Scene {
             newSegment.setData("wormId", serverWorm.id);
             newSegment.setData("wormType", serverWorm.type);
 
-            clientWorm.segments.push(newSegment);
+            clientWorm.addSegment(newSegment);
 
             // 현재 플레이어의 새 세그먼트만 바디 그룹에 추가 (머리가 아닌 경우)
             if (serverWorm.id === this.playerId && clientWorm.segments.length > 1) {
@@ -237,7 +237,7 @@ export default class GameScene extends Phaser.Scene {
 
         while (clientWorm.segments.length > serverWorm.segments.length) {
             // 세그먼트 제거
-            const removedSegment = clientWorm.segments.pop();
+            const removedSegment = clientWorm.removeLastSegment();
             if (removedSegment) {
                 // 현재 플레이어의 세그먼트만 바디 그룹에서 제거
                 if (serverWorm.id === this.playerId) {
@@ -247,18 +247,8 @@ export default class GameScene extends Phaser.Scene {
             }
         }
 
-        for (let i = 0; i < clientWorm.segments.length; i++) {
-            const clientSegment = clientWorm.segments[i];
-            const serverSegment = serverWorm.segments[i];
-
-            clientSegment.x = serverSegment.x;
-            clientSegment.y = serverSegment.y;
-
-            clientSegment.setRadius(serverWorm.radius);
-            if (clientSegment.body) {
-                (clientSegment.body as Phaser.Physics.Arcade.Body).setCircle(serverWorm.radius);
-            }
-        }
+        // 서버 위치를 타겟 위치로 설정 (즉시 적용하지 않음)
+        clientWorm.updateTargetPositions(serverWorm.segments, serverWorm.radius);
 
         // 스프린트 상태 업데이트
         clientWorm.isSprinting = serverWorm.isSprinting;
@@ -399,6 +389,11 @@ export default class GameScene extends Phaser.Scene {
     }
 
     update(_: number, dms: number) {
+        // 모든 지렁이의 보간 처리 수행
+        for (const worm of this.worms) {
+            worm.interpolatePositions();
+        }
+
         // 카메라 업데이트
         this.updateCamera();
     }
@@ -430,7 +425,12 @@ export default class GameScene extends Phaser.Scene {
      */
     private setupCamera(target: Phaser.GameObjects.GameObject, width: number, height: number) {
         this.cameras.main.setBounds(0, 0, width, height);
-        this.cameras.main.startFollow(target, true, FE_CONSTANTS.CAMERA_LERP_SPEED, FE_CONSTANTS.CAMERA_LERP_SPEED);
+        this.cameras.main.startFollow(
+            target,
+            true,
+            FE_CONSTANTS.CAMERA_MOVE_LERP_SPEED,
+            FE_CONSTANTS.CAMERA_MOVE_LERP_SPEED,
+        );
         this.cameras.main.setZoom(1); // 필요시 zoom 값 조정
     }
 
@@ -462,7 +462,9 @@ export default class GameScene extends Phaser.Scene {
         const currentRadius = headSegment.radius; // 플레이어 기준
         const baseZoom = 1;
         const zoom = baseZoom * (baseRadius / currentRadius);
-        this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom, zoom, FE_CONSTANTS.CAMERA_LERP_SPEED));
+        this.cameras.main.setZoom(
+            Phaser.Math.Linear(this.cameras.main.zoom, zoom, FE_CONSTANTS.CAMERA_ZOOM_LERP_SPEED),
+        );
     }
 
     /**
