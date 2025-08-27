@@ -14,7 +14,7 @@ export class WormState {
     public isSprinting: boolean;
     public wormType: WormType;
     public nicknameText: Phaser.GameObjects.Text | null = null;
-    private baseFontSize: number = 14; // 기본 폰트 크기
+    private baseFontSize: number = 25; // 기본 폰트 크기
 
     // 보간 처리를 위한 데이터
     public interpolationData: SegmentInterpolationData[] = [];
