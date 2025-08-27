@@ -2,9 +2,7 @@ import { Socket, Server as SocketIOServer } from "socket.io";
 import { Worm, Food } from "@beyondworm/shared";
 import { createPlayerWorm } from "../worm/factory";
 import { validateAndProcessFoodEaten, validateAndProcessCollision } from "../game/engine";
-import { MovementStrategy } from "../types/movement";
 import { updateServerStatus } from "../lobby/lobbyApi";
-import { getPlayerCount } from "../index";
 
 /**
  * 플레이어 연결 시 초기화를 처리합니다.
@@ -15,12 +13,6 @@ function handlePlayerConnection(
     worms: Map<string, Worm>,
     foods: Map<string, Food>,
     targetDirections: Map<string, { x: number; y: number }>,
-    botMovementStrategies: Map<string, MovementStrategy>,
-    manageBots: (
-        worms: Map<string, Worm>,
-        targetDirections: Map<string, { x: number; y: number }>,
-        botMovementStrategies: Map<string, MovementStrategy>,
-    ) => void,
 ): void {
     console.log("🔥 Client connected:", socket.id);
 
@@ -31,11 +23,8 @@ function handlePlayerConnection(
     worms.set(socket.id, playerWorm);
     targetDirections.set(socket.id, { x: playerWorm.direction.x, y: playerWorm.direction.y });
 
-    // 봇 관리 (첫 플레이어가 들어오면 봇 생성)
-    manageBots(worms, targetDirections, botMovementStrategies);
-
     // 로비 서버에 플레이어 수 업데이트
-    void updateServerStatus({ playerCount: getPlayerCount(worms) });
+    void updateServerStatus({ playerCount: io.engine.clientsCount });
 
     // 클라이언트에게 초기 상태 전송
     socket.emit("init", {
@@ -58,12 +47,6 @@ function handlePlayerDisconnection(
     io: SocketIOServer,
     worms: Map<string, Worm>,
     targetDirections: Map<string, { x: number; y: number }>,
-    botMovementStrategies: Map<string, MovementStrategy>,
-    manageBots: (
-        worms: Map<string, Worm>,
-        targetDirections: Map<string, { x: number; y: number }>,
-        botMovementStrategies: Map<string, MovementStrategy>,
-    ) => void,
 ): void {
     console.log("👋 Client disconnected:", socket.id);
 
@@ -71,11 +54,8 @@ function handlePlayerDisconnection(
     worms.delete(socket.id);
     targetDirections.delete(socket.id);
 
-    // 봇 관리 (마지막 플레이어가 나가면 봇 제거)
-    manageBots(worms, targetDirections, botMovementStrategies);
-
     // 로비 서버에 플레이어 수 업데이트
-    void updateServerStatus({ playerCount: getPlayerCount(worms) });
+    void updateServerStatus({ playerCount: io.engine.clientsCount });
 
     // 다른 클라이언트들에게 플레이어 떠남 알림
     io.emit("player-left", socket.id);
@@ -169,20 +149,14 @@ export function setupSocketHandlers(
     worms: Map<string, Worm>,
     foods: Map<string, Food>,
     targetDirections: Map<string, { x: number; y: number }>,
-    botMovementStrategies: Map<string, MovementStrategy>,
-    manageBots: (
-        worms: Map<string, Worm>,
-        targetDirections: Map<string, { x: number; y: number }>,
-        botMovementStrategies: Map<string, MovementStrategy>,
-    ) => void,
 ): void {
     io.on("connection", (socket: Socket) => {
         // 플레이어 연결 처리
-        handlePlayerConnection(socket, io, worms, foods, targetDirections, botMovementStrategies, manageBots);
+        handlePlayerConnection(socket, io, worms, foods, targetDirections);
 
         // 연결 해제 이벤트
         socket.on("disconnect", () => {
-            handlePlayerDisconnection(socket, io, worms, targetDirections, botMovementStrategies, manageBots);
+            handlePlayerDisconnection(socket, io, worms, targetDirections);
         });
 
         // 상태 업데이트 이벤트

@@ -2,7 +2,8 @@ import { GAME_CONSTANTS, Worm, WormType, Food, BotType } from "@beyondworm/share
 import { MovementStrategy } from "../types/movement";
 import { getAngleDifference, vectorToAngle, angleToVector } from "../utils/math";
 import { v4 as uuidv4 } from "uuid";
-import { createBotWorm, createMovementStrategy, createPlayerWorm } from "../worm/factory";
+import { createBotWorm, createMovementStrategy } from "../worm/factory";
+import { Server as SocketIOServer } from "socket.io";
 
 /**
  * 특정 위치에 먹이를 생성합니다.
@@ -269,19 +270,42 @@ export function handleBotFoodCollisions(
 }
 
 /**
- * 이전 틱이 끝나고 현재 틱이 시작하기전까지 죽은 지렁이들을 되살림
+ * 플레이어가 죽었을 때 게임에서 제거하는 함수
  */
-export function handleRespawns(
+function removeDeadPlayer(
+    playerId: string,
+    worms: Map<string, Worm>,
+    targetDirections: Map<string, { x: number; y: number }>,
+    io: SocketIOServer,
+): void {
+    const worm = worms.get(playerId);
+    if (worm && worm.isDead && worm.type === WormType.Player) {
+        console.log(`🚪 Removing dead player: ${playerId}`);
+
+        // 플레이어 상태 제거
+        worms.delete(playerId);
+        targetDirections.delete(playerId);
+
+        // 다른 클라이언트들에게 플레이어 떠남 알림
+        io.emit("player-left", playerId);
+    }
+}
+
+/**
+ * 이전 틱이 끝나고 현재 틱이 시작하기전까지 죽은 지렁이들은 되살리거나 제거한다
+ */
+export function handleKilledWorms(
     worms: Map<string, Worm>,
     targetDirections: Map<string, { x: number; y: number }>,
     botMovementStrategies: Map<string, MovementStrategy>,
-) {
+    io: SocketIOServer,
+): void {
     for (const [wormId, worm] of worms) {
         if (worm.isDead) {
             if (worm.type === WormType.Bot) {
                 respawnBot(wormId, worms, targetDirections, botMovementStrategies);
             } else if (worm.type === WormType.Player) {
-                respawnPlayer(worm);
+                removeDeadPlayer(wormId, worms, targetDirections, io);
             }
         }
     }
@@ -315,17 +339,6 @@ function respawnBot(
     botMovementStrategies.set(botId, createMovementStrategy(botType));
 
     console.log(`🤖 Bot ${botId} respawned as type ${botType}`);
-}
-
-/**
- * TODO 해당 메소드는 추후 사라지고 로비로 유저를 보내는 로직이 있어야함
- */
-function respawnPlayer(worm: Worm): void {
-    // 기존 지렁이의 ID를 유지하면서 새로 생성
-    const newWorm = createPlayerWorm(worm.id);
-    Object.assign(worm, newWorm);
-
-    console.log(`🔄 Worm respawned: ${worm.id}`);
 }
 
 /**
