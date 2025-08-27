@@ -292,7 +292,7 @@ function removeDeadPlayer(
 }
 
 /**
- * 이전 틱이 끝나고 현재 틱이 시작하기전까지 죽은 지렁이들을 되살림
+ * 이전 틱이 끝나고 현재 틱이 시작하기전까지 죽은 지렁이들은 되살리거나 제거한다
  */
 export function handleKilledWorms(
     worms: Map<string, Worm>,
