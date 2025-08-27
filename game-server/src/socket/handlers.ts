@@ -2,6 +2,7 @@ import { Socket, Server as SocketIOServer } from "socket.io";
 import { Worm, Food } from "@beyondworm/shared";
 import { createPlayerWorm } from "../worm/factory";
 import { validateAndProcessFoodEaten, validateAndProcessCollision } from "../game/engine";
+import { updateServerStatus } from "../lobby/lobbyApi";
 
 /**
  * 플레이어 연결 시 초기화를 처리합니다.
@@ -17,6 +18,7 @@ function handlePlayerConnection(socket: Socket): void {
  */
 function handleSetUsername(
     socket: Socket,
+    io: SocketIOServer,
     data: { username: string },
     worms: Map<string, Worm>,
     foods: Map<string, Food>,
@@ -34,6 +36,9 @@ function handleSetUsername(
     // 상태 저장
     worms.set(socket.id, playerWorm);
     targetDirections.set(socket.id, { x: playerWorm.direction.x, y: playerWorm.direction.y });
+
+    // 로비 서버에 플레이어 수 업데이트
+    void updateServerStatus({ playerCount: io.engine.clientsCount });
 
     // 클라이언트에게 초기 상태 전송
     socket.emit("init", {
@@ -62,6 +67,9 @@ function handlePlayerDisconnection(
     // 상태 정리
     worms.delete(socket.id);
     targetDirections.delete(socket.id);
+
+    // 로비 서버에 플레이어 수 업데이트
+    void updateServerStatus({ playerCount: io.engine.clientsCount });
 
     // 다른 클라이언트들에게 플레이어 떠남 알림
     io.emit("player-left", socket.id);
@@ -191,7 +199,7 @@ export function setupSocketHandlers(
 
         // username 설정 이벤트
         socket.on("set-username", (data: { username: string }) => {
-            handleSetUsername(socket, data, worms, foods, targetDirections);
+            handleSetUsername(socket, io, data, worms, foods, targetDirections);
         });
     });
 }

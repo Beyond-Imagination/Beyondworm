@@ -458,7 +458,12 @@ export default class GameScene extends Phaser.Scene {
      */
     private setupCamera(target: Phaser.GameObjects.GameObject, width: number, height: number) {
         this.cameras.main.setBounds(0, 0, width, height);
-        this.cameras.main.startFollow(target, true, FE_CONSTANTS.CAMERA_LERP_SPEED, FE_CONSTANTS.CAMERA_LERP_SPEED);
+        this.cameras.main.startFollow(
+            target,
+            true,
+            FE_CONSTANTS.CAMERA_MOVE_LERP_SPEED,
+            FE_CONSTANTS.CAMERA_MOVE_LERP_SPEED,
+        );
         this.cameras.main.setZoom(1); // 필요시 zoom 값 조정
     }
 
@@ -490,7 +495,9 @@ export default class GameScene extends Phaser.Scene {
         const currentRadius = headSegment.radius; // 플레이어 기준
         const baseZoom = 1;
         const zoom = baseZoom * (baseRadius / currentRadius);
-        this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom, zoom, FE_CONSTANTS.CAMERA_LERP_SPEED));
+        this.cameras.main.setZoom(
+            Phaser.Math.Linear(this.cameras.main.zoom, zoom, FE_CONSTANTS.CAMERA_ZOOM_LERP_SPEED),
+        );
     }
 
     /**

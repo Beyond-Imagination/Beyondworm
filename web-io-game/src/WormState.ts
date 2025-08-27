@@ -81,22 +81,23 @@ export class WormState {
 
             if (data) {
                 // 거리 기반 보간 속도 조정 (거리가 클수록 빠르게 따라잡기)
-                const distance = Math.sqrt(
-                    Math.pow(data.targetPosition.x - data.previousPosition.x, 2) +
-                        Math.pow(data.targetPosition.y - data.previousPosition.y, 2),
+                const distance = Math.hypot(
+                    data.targetPosition.x - data.previousPosition.x,
+                    data.targetPosition.y - data.previousPosition.y,
                 );
 
                 // 거리가 클 때는 더 빠르게 보간하여 끊김 현상 방지
                 let adjustedFactor = interpolationFactor;
-                if (distance > 50) {
+                const CATCH_UP_DISTANCE_THRESHOLD = 50;
+                if (distance > CATCH_UP_DISTANCE_THRESHOLD) {
                     // 50px 이상 차이나면 빠르게 따라잡기
                     adjustedFactor = Math.min(interpolationFactor * 1.5, 1);
                 }
 
                 // 부드러운 위치 보간
-                const newX = this.smoothLerp(data.previousPosition.x, data.targetPosition.x, adjustedFactor);
-                const newY = this.smoothLerp(data.previousPosition.y, data.targetPosition.y, adjustedFactor);
-                const newRadius = this.smoothLerp(data.previousRadius, data.targetRadius, interpolationFactor);
+                const newX = this.lerp(data.previousPosition.x, data.targetPosition.x, adjustedFactor);
+                const newY = this.lerp(data.previousPosition.y, data.targetPosition.y, adjustedFactor);
+                const newRadius = this.lerp(data.previousRadius, data.targetRadius, interpolationFactor);
 
                 segment.x = newX;
                 segment.y = newY;
@@ -113,7 +114,7 @@ export class WormState {
     /**
      * 부드러운 선형 보간 함수
      */
-    private smoothLerp(start: number, end: number, factor: number): number {
+    private lerp(start: number, end: number, factor: number): number {
         return start + (end - start) * factor;
     }
 
