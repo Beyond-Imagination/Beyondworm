@@ -20,7 +20,7 @@ export default class GameClient {
             // 경로가 있다는 것은 Nginx 리버스 프록시를 사용하는 운영 환경임을 의미.
             if (url.pathname !== "/") {
                 // 운영 환경일 경우에만 path 옵션을 추가
-                const gamePath = url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname;
+                const gamePath = url.pathname.endsWith("/") ? url.pathname.slice(0, -1) : url.pathname;
                 options.path = `${gamePath}/socket.io/`;
             }
 
