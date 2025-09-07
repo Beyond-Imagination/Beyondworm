@@ -220,14 +220,6 @@ function createGameLoop(
  * 예: DB 연결 종료, 열린 리소스 해제 등
  * 그 후 프로세스를 종료합니다.
  */
-function gracefulShutdown() {
-    console.log("Shutting down game server...");
-    // 필요한 정리 작업 수행 (예: DB 연결 종료, 열린 리소스 해제 등)
-    process.exit(0);
-}
-process.on("SIGINT", gracefulShutdown);
-process.on("SIGTERM", gracefulShutdown);
-
 // --- 메인 서버 초기화 ---
 
 async function main() {
@@ -270,9 +262,47 @@ async function main() {
     const gameLoop = createGameLoop(io, worms, foods, targetDirections, botMovementStrategies);
     gameLoop();
 
+    // 서버 종료 시그널 처리
+    async function gracefulShutdown() { // async 추가
+        console.log("Shutting down game server...");
+        try {
+            // io.close()가 호출될 때, Socket.IO가 내부적으로 연결된 httpServer까지 함께 종료하므로 io만 닫아도 충분.
+            await new Promise<void>((resolve, reject) => {
+                io.close(err => {
+                    if (err) {
+                        console.error("Error closing Socket.IO server:", err);
+                        return reject(err);
+                    }
+                    console.log("Socket.IO server closed.");
+                    resolve();
+                });
+            });
+            process.exit(0); // 모든 종료 작업 완료 후 프로세스 종료
+        } catch (error) {
+            console.error("Error during graceful shutdown:", error);
+            process.exit(1); // 오류 발생 시 프로세스 종료
+        } finally {
+            // 혹시나 process.exit(0)이 동작하지 않았을 경우를 대비한 강제종료 타이머
+            setTimeout(() => {
+                console.error("Forcing shutdown after timeout.");
+                process.exit(1);
+            }, 10000); // 10초 후 강제 종료
+        }
+    }
+
+    // process.on에 연결할 때 void를 사용하여 Promise가 처리되지 않음을 명시
+    process.on("SIGINT", () => { void gracefulShutdown(); });
+    process.on("SIGTERM", () => { void gracefulShutdown(); });
+
     httpServer.listen(PORT, () => {
         console.log(`🚀 Server listening on http://localhost:${PORT}`);
     });
 }
 
-void main();
+  
+(async () => {
+    await main();
+})().catch(error => {
+    console.error("Unhandled error at top level:", error);
+    process.exit(1);
+});

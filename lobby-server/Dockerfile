@@ -17,6 +17,9 @@ COPY lobby-server/src ./src
 RUN npm ci
 RUN npm run build   # => /app/lobby-server/dist/index.js
 
+# 개발용 의존성 제거
+RUN npm prune --production
+
 FROM node:20-alpine
 WORKDIR /app/lobby-server
 
