@@ -39,10 +39,13 @@ function setupExpressApp(): express.Application {
  * Socket.IO 서버를 생성합니다.
  */
 function createSocketIOServer(httpServer: Server): SocketIOServer {
-    console.log("CORS_ORIGIN:", process.env.CORS_ORIGIN);
+    const corsOriginList = process.env.CORS_ALLOWED_ORIGINS
+        ? process.env.CORS_ALLOWED_ORIGINS.split(",")
+        : ["http://localhost:5173"]; // 개발용 기본값
+    console.log("CORS_ALLOWED_ORIGINS:", corsOriginList);
     return new SocketIOServer(httpServer, {
         cors: {
-            origin: process.env.CORS_ORIGIN, // .env 파일에 CORS_ORIGIN="http://your.frontend.domain" 형식으로 설정
+            origin: corsOriginList,
             methods: ["GET", "POST"],
             credentials: true,
         },

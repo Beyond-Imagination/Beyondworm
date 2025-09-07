@@ -4,7 +4,17 @@ import axios from "axios";
 import { logDetailedError } from "@beyondworm/shared";
 
 const app = express();
-app.use(cors());
+
+// CORS 설정: 환경 변수에서 허용된 Origin 목록을 가져와 적용
+const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
+    ? process.env.CORS_ALLOWED_ORIGINS.split(",")
+    : ["http://localhost:5173"]; // 개발용 기본값
+app.use(
+    cors({
+        origin: allowedOrigins,
+        credentials: true,
+    }),
+);
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;

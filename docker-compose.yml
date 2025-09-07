@@ -9,6 +9,7 @@ services:
       - "8081:8081" # Host Port:Container Port
     environment:
       - PORT=8081
+      - CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174
 
   game-server:
     build:
@@ -22,7 +23,6 @@ services:
       - LOBBY_SERVER_URL=http://lobby-server:8081
       - SERVER_PUBLIC_URL=http://localhost:7200
       - SERVER_INTERNAL_URL=http://game-server:7200
-      - CORS_ORIGIN=http://localhost:5173
+      - CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174
     depends_on:
       - lobby-server
-
