@@ -122,7 +122,7 @@ const healthCheckInterval = setInterval(async () => {
             // 헬스체크는 internalAddress 사용
             await axios.get(`${serverInfo.internalAddress}/health`, { timeout: HEALTH_CHECK_TIMEOUT });
             // Health check successful
-            // console.log(`✅ Health check successful for server ${serverId}`);
+            console.log(`✅ Health check successful for server ${serverId}`);
             serverInfo.lastSeen = Date.now();
         } catch (error: unknown) {
             logDetailedError(error, `❌ Health check failed for server ${serverId} at ${serverInfo.internalAddress}:`);

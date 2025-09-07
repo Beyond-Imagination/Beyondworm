@@ -2,7 +2,7 @@ import axios from "axios";
 import { logDetailedError } from "@beyondworm/shared";
 import { v4 as uuidv4 } from "uuid";
 
-const LOBBY_SERVER_URL = process.env.LOBBY_SERVER_URL || "http://localhost:8081";
+const LOBBY_SERVER_URL = process.env.LOBBY_SERVER_URL || "http://localhost:3000";
 const SERVER_ID = process.env.SERVER_ID || `server.${uuidv4()}`;
 
 export async function registerWithLobby() {
