@@ -210,6 +210,21 @@ function createGameLoop(
     return gameLoop;
 }
 
+/**
+ * 서버 종료 시그널 처리
+ * 예: SIGINT (Ctrl+C), SIGTERM
+ * 필요한 정리 작업을 수행합니다.
+ * 예: DB 연결 종료, 열린 리소스 해제 등
+ * 그 후 프로세스를 종료합니다.
+ */
+function gracefulShutdown() {
+    console.log("Shutting down game server...");
+    // 필요한 정리 작업 수행 (예: DB 연결 종료, 열린 리소스 해제 등)
+    process.exit(0);
+}
+process.on("SIGINT", gracefulShutdown);
+process.on("SIGTERM", gracefulShutdown);
+
 // --- 메인 서버 초기화 ---
 
 async function main() {

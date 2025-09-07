@@ -1,0 +1,28 @@
+
+services:
+  lobby-server:
+    build:
+      context: .
+      dockerfile: ./lobby-server/Dockerfile
+    container_name: lobby-server
+    ports:
+      - "8081:8081" # Host Port:Container Port
+    environment:
+      - PORT=8081
+
+  game-server:
+    build:
+      context: .
+      dockerfile: ./game-server/Dockerfile
+    container_name: game-server
+    ports:
+      - "7200:7200" # Host Port:Container Port
+    environment:
+      - PORT=7200
+      - LOBBY_SERVER_URL=http://lobby-server:8081
+      - SERVER_PUBLIC_URL=http://localhost:7200
+      - SERVER_INTERNAL_URL=http://game-server:7200
+      - CORS_ORIGIN=http://localhost:5173
+    depends_on:
+      - lobby-server
+

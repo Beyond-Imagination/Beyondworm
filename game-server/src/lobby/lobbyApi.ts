@@ -2,15 +2,19 @@ import axios from "axios";
 import { logDetailedError } from "@beyondworm/shared";
 import { v4 as uuidv4 } from "uuid";
 
-const LOBBY_SERVER_URL = process.env.LOBBY_SERVER_URL || "http://localhost:3000";
+const LOBBY_SERVER_URL = process.env.LOBBY_SERVER_URL || "http://localhost:8081";
 const SERVER_ID = process.env.SERVER_ID || `server.${uuidv4()}`;
 
 export async function registerWithLobby() {
-    const address = `http://localhost:${process.env.PORT || 3001}`;
+    const publicAddress = process.env.SERVER_PUBLIC_URL || `http://localhost:${process.env.PORT || 3001}`;
+    const internalAddress = process.env.SERVER_INTERNAL_URL || publicAddress;
+
     try {
+        console.log(`Registering with lobby server at ${LOBBY_SERVER_URL}...`);
         await axios.post(`${LOBBY_SERVER_URL}/server`, {
             serverId: SERVER_ID,
-            address: address,
+            publicAddress: publicAddress,
+            internalAddress: internalAddress,
         });
         console.log(`Successfully registered with lobby server at ${LOBBY_SERVER_URL}`);
     } catch (error: unknown) {
