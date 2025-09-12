@@ -84,7 +84,7 @@ app.patch("/server", (req: Request, res: Response) => {
     serverInfo.lastSeen = Date.now();
     serverCache.set(serverId, serverInfo);
 
-    // console.log(`Server updated: ${serverId} now has ${playerCount} players.`);
+    console.log(`Server updated: ${serverId} now has ${playerCount} players.`);
 
     res.status(200).json({ message: "Player count updated" });
 });
