@@ -54,7 +54,7 @@ export default class GameClient {
             this.scene.handleFoodEatenFromServer(collisions);
         });
 
-        this.socket.on("worm-died", (data: { killedWormId: string; killerWormId: string }) => {
+        this.socket.on("worm-died", (data: { killedWormId: string; killerWormId: string | null }) => {
             // 지렁이가 죽었을 때 처리
             this.scene.handleWormDiedFromServer(data);
 
