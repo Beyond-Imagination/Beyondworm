@@ -505,14 +505,16 @@ export function handleMapBoundaryExceedingWorms(worms: Map<string, Worm>, foods:
 
     for (const worm of allWorms) {
         // 맵 경계 체크: 머리가 맵 밖으로 나가면 사망
+        if (worm.isDead) continue;
+
         const head = worm.segments[0];
-        if (
-            !worm.isDead &&
-            (head.x - worm.radius < -GAME_CONSTANTS.MAP_BOUNDARY_OFFSET ||
-                head.x + worm.radius > GAME_CONSTANTS.MAP_WIDTH + GAME_CONSTANTS.MAP_BOUNDARY_OFFSET ||
-                head.y - worm.radius < -GAME_CONSTANTS.MAP_BOUNDARY_OFFSET ||
-                head.y + worm.radius > GAME_CONSTANTS.MAP_HEIGHT + GAME_CONSTANTS.MAP_BOUNDARY_OFFSET)
-        ) {
+        const isOutOfBounds =
+            head.x - worm.radius < -GAME_CONSTANTS.MAP_BOUNDARY_OFFSET ||
+            head.x + worm.radius > GAME_CONSTANTS.MAP_WIDTH + GAME_CONSTANTS.MAP_BOUNDARY_OFFSET ||
+            head.y - worm.radius < -GAME_CONSTANTS.MAP_BOUNDARY_OFFSET ||
+            head.y + worm.radius > GAME_CONSTANTS.MAP_HEIGHT + GAME_CONSTANTS.MAP_BOUNDARY_OFFSET;
+
+        if (isOutOfBounds) {
             killedWormIds.push(worm.id);
             killWorm(worm, foods);
         }
