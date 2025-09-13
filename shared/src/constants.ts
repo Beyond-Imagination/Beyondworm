@@ -4,6 +4,7 @@ export const GAME_CONSTANTS = {
     // Map
     MAP_WIDTH: 15000,
     MAP_HEIGHT: 10000,
+    MAP_BOUNDARY_OFFSET: 50, // 맵 경계를 넘어도 죽지 않는 오프셋(px)
 
     // Tick
     TICK_RATE: tickRate, // 초당 틱 수

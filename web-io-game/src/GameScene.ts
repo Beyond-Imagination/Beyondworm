@@ -357,8 +357,9 @@ export default class GameScene extends Phaser.Scene {
     /**
      * 서버에서 지렁이가 죽었을 때 처리
      */
-    public handleWormDiedFromServer(data: { killedWormId: string; killerWormId: string }) {
-        console.log(`💀 Worm died: ${data.killedWormId} killed by ${data.killerWormId}`);
+    public handleWormDiedFromServer(data: { killedWormId: string; killerWormId: string | null }) {
+        if (data.killerWormId) console.log(`💀 Worm died: ${data.killedWormId} killed by ${data.killerWormId}`);
+        else console.log(`💀 Worm died: ${data.killedWormId} naturally`); // 자연사
 
         // 죽은 지렁이가 내 플레이어인 경우 카메라 설정을 일시적으로 해제할 수 있음
         if (data.killedWormId === this.playerId) {
