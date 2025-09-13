@@ -36,16 +36,48 @@ export default class GameScene extends Phaser.Scene {
     }
 
     create() {
+        const extendedWidth = GAME_CONSTANTS.MAP_WIDTH + FE_CONSTANTS.CAMERA_PADDING * 2;
+        const extendedHeight = GAME_CONSTANTS.MAP_HEIGHT + FE_CONSTANTS.CAMERA_PADDING * 2;
+
         // 화면 크기에 맞는 배경 타일 스프라이트 추가 (효율적인 방식)
         this.backgroundTileSprite = this.add.tileSprite(
             GAME_CONSTANTS.MAP_WIDTH / 2,
             GAME_CONSTANTS.MAP_HEIGHT / 2,
-            GAME_CONSTANTS.MAP_WIDTH,
-            GAME_CONSTANTS.MAP_HEIGHT,
+            extendedWidth,
+            extendedHeight,
             "background_pattern",
         );
         this.backgroundTileSprite.setOrigin(0.5, 0.5); // 화면 중앙에 배치하기 위해 원점 설정
         this.backgroundTileSprite.setDepth(GameScene.BACKGROUND_DEPTH); // 다른 모든 게임 요소보다 뒤에 있도록 설정
+
+        // 맵 경계 밖 위험 구역 표시
+        const dangerZone = this.add.graphics();
+        dangerZone.fillStyle(0xff0000, 0.2); // 빨간색, 20% 불투명도
+        // 상단
+        dangerZone.fillRect(
+            -FE_CONSTANTS.CAMERA_PADDING,
+            -FE_CONSTANTS.CAMERA_PADDING,
+            extendedWidth,
+            FE_CONSTANTS.CAMERA_PADDING,
+        );
+        // 하단
+        dangerZone.fillRect(
+            -FE_CONSTANTS.CAMERA_PADDING,
+            GAME_CONSTANTS.MAP_HEIGHT,
+            extendedWidth,
+            FE_CONSTANTS.CAMERA_PADDING,
+        );
+        // 좌측
+        dangerZone.fillRect(-FE_CONSTANTS.CAMERA_PADDING, 0, FE_CONSTANTS.CAMERA_PADDING, GAME_CONSTANTS.MAP_HEIGHT);
+        // 우측
+        dangerZone.fillRect(GAME_CONSTANTS.MAP_WIDTH, 0, FE_CONSTANTS.CAMERA_PADDING, GAME_CONSTANTS.MAP_HEIGHT);
+        dangerZone.setDepth(FE_CONSTANTS.ZORDER_MAP_END_ELEMENT - 1); // 경계선보다는 뒤, 배경보다는 앞에 위치
+
+        // 맵 경계선 그리기
+        const border = this.add.graphics();
+        border.lineStyle(40, 0xffffff, 1); // 두께 40, 흰색, 불투명
+        border.strokeRect(0, 0, GAME_CONSTANTS.MAP_WIDTH, GAME_CONSTANTS.MAP_HEIGHT);
+        border.setDepth(FE_CONSTANTS.ZORDER_MAP_END_ELEMENT); // 다른 요소들과 겹치지 않도록 깊이 설정
 
         // 트랜지션 효과를 위해 시작 시 투명하게 설정
         this.cameras.main.setAlpha(0);
@@ -424,7 +456,12 @@ export default class GameScene extends Phaser.Scene {
      * @param height 카메라 bounds의 높이 (예: 맵 높이)
      */
     private setupCamera(target: Phaser.GameObjects.GameObject, width: number, height: number) {
-        this.cameras.main.setBounds(0, 0, width, height);
+        this.cameras.main.setBounds(
+            -FE_CONSTANTS.CAMERA_PADDING,
+            -FE_CONSTANTS.CAMERA_PADDING,
+            width + FE_CONSTANTS.CAMERA_PADDING * 2,
+            height + FE_CONSTANTS.CAMERA_PADDING * 2,
+        );
         this.cameras.main.startFollow(
             target,
             true,
