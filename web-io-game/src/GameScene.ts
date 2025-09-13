@@ -52,30 +52,45 @@ export default class GameScene extends Phaser.Scene {
 
         // 맵 경계 밖 위험 구역 표시
         const dangerZone = this.add.graphics();
-        dangerZone.fillStyle(0xff0000, 0.2); // 빨간색, 20% 불투명도
-        // 상단
-        dangerZone.fillRect(
-            -FE_CONSTANTS.CAMERA_PADDING,
-            -FE_CONSTANTS.CAMERA_PADDING,
-            extendedWidth,
-            FE_CONSTANTS.CAMERA_PADDING,
-        );
-        // 하단
-        dangerZone.fillRect(
-            -FE_CONSTANTS.CAMERA_PADDING,
-            GAME_CONSTANTS.MAP_HEIGHT,
-            extendedWidth,
-            FE_CONSTANTS.CAMERA_PADDING,
-        );
-        // 좌측
-        dangerZone.fillRect(-FE_CONSTANTS.CAMERA_PADDING, 0, FE_CONSTANTS.CAMERA_PADDING, GAME_CONSTANTS.MAP_HEIGHT);
-        // 우측
-        dangerZone.fillRect(GAME_CONSTANTS.MAP_WIDTH, 0, FE_CONSTANTS.CAMERA_PADDING, GAME_CONSTANTS.MAP_HEIGHT);
+        dangerZone.fillStyle(FE_CONSTANTS.BOUNDARY_COLOR, FE_CONSTANTS.BOUNDARY_TRANSPARENCY);
+        const dangerRects = [
+            // 상단
+            {
+                x: -FE_CONSTANTS.CAMERA_PADDING,
+                y: -FE_CONSTANTS.CAMERA_PADDING,
+                width: extendedWidth,
+                height: FE_CONSTANTS.CAMERA_PADDING,
+            },
+            // 하단
+            {
+                x: -FE_CONSTANTS.CAMERA_PADDING,
+                y: GAME_CONSTANTS.MAP_HEIGHT,
+                width: extendedWidth,
+                height: FE_CONSTANTS.CAMERA_PADDING,
+            },
+            // 좌측
+            {
+                x: -FE_CONSTANTS.CAMERA_PADDING,
+                y: 0,
+                width: FE_CONSTANTS.CAMERA_PADDING,
+                height: GAME_CONSTANTS.MAP_HEIGHT,
+            },
+            // 우측
+            {
+                x: GAME_CONSTANTS.MAP_WIDTH,
+                y: 0,
+                width: FE_CONSTANTS.CAMERA_PADDING,
+                height: GAME_CONSTANTS.MAP_HEIGHT,
+            },
+        ];
+        dangerRects.forEach(({ x, y, width, height }) => {
+            dangerZone.fillRect(x, y, width, height);
+        });
         dangerZone.setDepth(FE_CONSTANTS.ZORDER_MAP_END_ELEMENT - 1); // 경계선보다는 뒤, 배경보다는 앞에 위치
 
         // 맵 경계선 그리기
         const border = this.add.graphics();
-        border.lineStyle(40, 0xffffff, 1); // 두께 40, 흰색, 불투명
+        border.lineStyle(FE_CONSTANTS.BORDER_THICKNESS, FE_CONSTANTS.BORDER_COLOR, 1);
         border.strokeRect(0, 0, GAME_CONSTANTS.MAP_WIDTH, GAME_CONSTANTS.MAP_HEIGHT);
         border.setDepth(FE_CONSTANTS.ZORDER_MAP_END_ELEMENT); // 다른 요소들과 겹치지 않도록 깊이 설정
 
