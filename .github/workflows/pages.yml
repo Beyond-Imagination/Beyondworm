@@ -1,33 +1,44 @@
-name: Deploy Beyondworm to GitHub Pages
+
+name: Deploy to GitHub Pages
+
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
     steps:
-      - name: Main기준으로 코드 가져오기
+      - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Node.js 설정
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-      - name: 공통 코드 의존성 설치
+          node-version: 20
+
+      - name: Install dependencies
         run: npm ci
-        working-directory: shared
-      - name: 공통 코드 빌드
+        working-directory: web-io-game
+
+      - name: Build client
         run: npm run build
-        working-directory: shared
-      - name: FE 코드 의존성 설치
-        run: npm ci
         working-directory: web-io-game
-      - name: FE 빌드
-        run: npx vite build --outDir dist
-        working-directory: web-io-game
-      - name: 깃헙 페이지로 정적파일 배포
-        uses: peaceiris/actions-gh-pages@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./web-io-game/dist
-          publish_branch: gh-pages
+          path: web-io-game/dist/client # Vite의 outDir과 일치해야 합니다.
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
