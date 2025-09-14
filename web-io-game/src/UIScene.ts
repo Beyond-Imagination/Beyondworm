@@ -139,21 +139,15 @@ export default class UIScene extends Phaser.Scene {
                 const rankText = this.rankingTexts[index];
 
                 // 랭킹에 따른 색상 설정
-                let color = "#ffffff";
-                let medal = "";
+                const rankDecorations: { [key: number]: { color: string; medal: string } } = {
+                    1: { color: "#FFD700", medal: "🥇 " }, // 금색
+                    2: { color: "#C0C0C0", medal: "🥈 " }, // 은색
+                    3: { color: "#CD7F32", medal: "🥉 " }, // 동색
+                };
 
-                if (entry.rank === 1) {
-                    color = "#FFD700"; // 금색
-                    medal = "🥇 ";
-                } else if (entry.rank === 2) {
-                    color = "#C0C0C0"; // 은색
-                    medal = "🥈 ";
-                } else if (entry.rank === 3) {
-                    color = "#CD7F32"; // 동색
-                    medal = "🥉 ";
-                } else {
-                    medal = `${entry.rank}. `;
-                }
+                const decoration = rankDecorations[entry.rank];
+                const color = decoration ? decoration.color : "#ffffff";
+                const medal = decoration ? decoration.medal : `${entry.rank}. `;
 
                 // 닉네임이 너무 길면 줄임
                 const maxNicknameLength = 12;
@@ -172,7 +166,7 @@ export default class UIScene extends Phaser.Scene {
 
         // 빈 슬롯에는 대기 메시지 표시
         if (rankingData.rankings.length < 10) {
-            for (let i = rankingData.rankings.length; i < Math.min(5, this.rankingTexts.length); i++) {
+            for (let i = rankingData.rankings.length; i < this.rankingTexts.length; i++) {
                 this.rankingTexts[i].setText(`${i + 1}. -`).setColor("#666666");
             }
         }
