@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import express from "express";
 import { createServer, Server } from "node:http";
 import { Server as SocketIOServer } from "socket.io";
-import { GAME_CONSTANTS, Worm, BotType, Food, WormType } from "@beyondworm/shared";
+import { GAME_CONSTANTS, Worm, BotType, Food, WormType, RankingData, RankingEntry } from "@beyondworm/shared";
 import { MovementStrategy } from "./types/movement";
 import { createBotWorm, createMovementStrategy } from "./worm/factory";
 import {
@@ -130,6 +130,26 @@ function manageBots(
 }
 
 /**
+ * 현재 지렁이들의 랭킹을 계산합니다.
+ */
+function calculateRankings(worms: Map<string, Worm>): RankingData {
+    // 살아있는 지렁이들만 필터링하고 점수 순으로 정렬
+    const aliveWorms = Array.from(worms.values())
+        .filter((worm) => !worm.isDead)
+        .sort((a, b) => b.score - a.score);
+
+    // TOP 10만 선택하고 랭킹 데이터 생성
+    const rankings: RankingEntry[] = aliveWorms.slice(0, 10).map((worm, index) => ({
+        id: worm.id,
+        nickname: worm.nickname,
+        score: worm.score,
+        rank: index + 1,
+    }));
+
+    return { rankings };
+}
+
+/**
  * 게임 상태를 업데이트하고 클라이언트에게 전송합니다.
  */
 function updateAndBroadcastGameState(
@@ -173,10 +193,14 @@ function updateAndBroadcastGameState(
         io.emit("food-eaten", botCollisions);
     }
 
-    // 클라이언트에게 게임 상태 전송
+    // 랭킹 계산
+    const rankingData = calculateRankings(worms);
+
+    // 클라이언트에게 게임 상태와 랭킹을 함께 전송
     io.emit("state-update", {
         worms: Array.from(worms.values()),
         foods: Array.from(foods.values()),
+        ranking: rankingData,
     });
 }
 

@@ -5,6 +5,7 @@ import GameClient from "./GameClient";
 import { Food, GAME_CONSTANTS, Worm } from "@beyondworm/shared";
 import FoodUI from "./FoodUI";
 import bgPatternURL from "/background.jpeg?url";
+import { RankingData } from "@beyondworm/shared";
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -509,6 +510,16 @@ export default class GameScene extends Phaser.Scene {
         // DeathScene을 오버레이로 시작 (GameScene은 계속 실행됨)
         if (!this.scene.isActive("DeathScene")) {
             this.scene.launch("DeathScene");
+        }
+    }
+
+    /**
+     * 서버로부터 받은 랭킹 데이터를 UIScene으로 전달합니다.
+     */
+    public updateRankingData(rankingData: RankingData) {
+        const uiScene = this.scene.get("UIScene") as import("./UIScene").default;
+        if (uiScene) {
+            uiScene.updateRanking(rankingData);
         }
     }
 }

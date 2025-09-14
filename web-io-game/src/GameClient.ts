@@ -1,6 +1,6 @@
 import { io, Socket } from "socket.io-client";
 import GameScene from "./GameScene";
-import { Food, GAME_CONSTANTS, Worm } from "@beyondworm/shared";
+import { Food, GAME_CONSTANTS, Worm, RankingData } from "@beyondworm/shared";
 
 export default class GameClient {
     private socket: Socket;
@@ -56,10 +56,15 @@ export default class GameClient {
             this.scene.removeWormFromServer(playerId);
         });
 
-        this.socket.on("state-update", (data: { worms: Worm[]; foods: Food[] }) => {
+        this.socket.on("state-update", (data: { worms: Worm[]; foods: Food[]; ranking: RankingData }) => {
             // 서버로부터 받은 모든 지렁이 및 먹이 상태로 업데이트
             this.scene.updateWormsFromServer(data.worms);
             this.scene.updateFoodsFromServer(data.foods);
+
+            // 랭킹 데이터도 함께 업데이트
+            if (data.ranking) {
+                this.scene.updateRankingData(data.ranking);
+            }
         });
 
         this.socket.on("food-eaten", (collisions: { wormId: string; foodId: string }[]) => {
