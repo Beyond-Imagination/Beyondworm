@@ -17,7 +17,7 @@ RUN npm run build   # => /app/shared/dist 생성
 
 # game 소스 복사
 WORKDIR /app/game-server
-COPY game-server/tsconfig*.json . # tsconfig.json도 복사
+COPY game-server/tsconfig.json .
 COPY game-server/src ./src
 
 # game 설치 (로컬 file:../shared를 이미 /app/shared로 제공 중)
