@@ -29,9 +29,23 @@ export default class GameClient {
             this.socket = io(baseUrl, options);
 
             this.setupEventListeners();
+
+            // 게임 시작 시 username을 서버로 전송
+            this.sendUserInfo();
+
         } catch (error) {
             console.error("Invalid Game Server URL:", gameServerUrl, error);
             this.socket = io(); // 연결 실패를 유도
+        }
+    }
+
+    /**
+    * 사용자 정보를 서버로 전송합니다.
+    */
+    private sendUserInfo() {
+        const username = this.scene.game.registry.get("username") as string;
+        if (username) {
+            this.socket.emit("set-username", { username });
         }
     }
 
