@@ -50,6 +50,17 @@ export interface GameState {
     gameOver: boolean;
 }
 
+export interface RankingEntry {
+    id: string;
+    nickname: string;
+    score: number;
+    rank: number;
+}
+
+export interface RankingData {
+    rankings: RankingEntry[];
+}
+
 export interface Action {
     type: string;
     payload: unknown;

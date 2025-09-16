@@ -1,10 +1,16 @@
 import Phaser from "phaser";
 import GameSettings from "./GameSettings";
-import { GAME_CONSTANTS } from "@beyondworm/shared";
+import { GAME_CONSTANTS, RankingData } from "@beyondworm/shared";
 
 export default class UIScene extends Phaser.Scene {
     private foodText!: Phaser.GameObjects.Text;
     private usernameText!: Phaser.GameObjects.Text; // 사용자 이름 텍스트 추가
+
+    // 랭킹 관련 UI 요소들
+    private rankingContainer!: Phaser.GameObjects.Container;
+    private rankingBackground!: Phaser.GameObjects.Graphics;
+    private rankingTitle!: Phaser.GameObjects.Text;
+    private rankingTexts: Phaser.GameObjects.Text[] = [];
 
     // 디버그 변수는 개발 환경에서만 선언
     private debugText?: Phaser.GameObjects.Text;
@@ -41,14 +47,128 @@ export default class UIScene extends Phaser.Scene {
             .setVisible(true)
             .setDepth(10000);
 
+        // 랭킹 대시보드 생성
+        this.createRankingDashboard();
+
         // 화면 크기 변경 시 위치 재조정
         this.scale.on("resize", (gameSize: Phaser.Structs.Size) => {
             this.foodText.setPosition(gameSize.width - 40, 20);
+            this.updateRankingPosition(gameSize.width, gameSize.height);
         });
 
         // 디버그 UI는 별도 함수에서 관리
         if (import.meta.env.MODE === "development") {
             this.createDebug();
+        }
+    }
+
+    /**
+     * 랭킹 대시보드 UI를 생성합니다.
+     */
+    private createRankingDashboard() {
+        const initialX = this.scale.width - 320;
+        const initialY = 80;
+
+        // 배경 그래픽 생성
+        this.rankingBackground = this.add.graphics();
+        this.rankingBackground.fillStyle(0x000000, 0.7);
+        this.rankingBackground.lineStyle(2, 0xffffff, 0.8);
+        this.rankingBackground.fillRoundedRect(0, 0, 300, 450, 10);
+        this.rankingBackground.strokeRoundedRect(0, 0, 300, 450, 10);
+
+        // 타이틀 텍스트
+        this.rankingTitle = this.add
+            .text(150, 20, "🏆 TOP 10 랭킹", {
+                font: "bold 20px Arial",
+                color: "#FFD700",
+                align: "center",
+            })
+            .setOrigin(0.5, 0)
+            .setStroke("#000", 3);
+
+        // 랭킹 엔트리 텍스트들 생성 (최대 10개, 간격을 40px로 증가)
+        this.rankingTexts = [];
+        for (let i = 0; i < 10; i++) {
+            const rankText = this.add
+                .text(20, 60 + i * 40, "", {
+                    font: "16px Arial",
+                    color: "#ffffff",
+                    align: "left",
+                })
+                .setOrigin(0, 0)
+                .setStroke("#000", 2);
+            this.rankingTexts.push(rankText);
+        }
+
+        // 컨테이너에 모든 요소 추가
+        this.rankingContainer = this.add.container(initialX, initialY, [
+            this.rankingBackground,
+            this.rankingTitle,
+            ...this.rankingTexts,
+        ]);
+
+        this.rankingContainer.setDepth(9999);
+    }
+
+    /**
+     * 화면 크기 변경 시 랭킹 대시보드 위치를 업데이트합니다.
+     */
+    private updateRankingPosition(width: number) {
+        if (this.rankingContainer) {
+            this.rankingContainer.setPosition(width - 320, 80);
+        }
+    }
+
+    /**
+     * 서버로부터 받은 랭킹 데이터로 UI를 업데이트합니다.
+     */
+    public updateRanking(rankingData: RankingData) {
+        if (!this.rankingTexts || this.rankingTexts.length === 0) {
+            return;
+        }
+
+        // 모든 랭킹 텍스트를 초기화
+        this.rankingTexts.forEach((text) => {
+            text.setText("");
+            text.setColor("#ffffff");
+        });
+
+        // 랭킹 데이터로 텍스트 업데이트
+        rankingData.rankings.forEach((entry, index) => {
+            if (index < this.rankingTexts.length) {
+                const rankText = this.rankingTexts[index];
+
+                // 랭킹에 따른 색상 설정
+                const rankDecorations: { [key: number]: { color: string; medal: string } } = {
+                    1: { color: "#FFD700", medal: "🥇 " }, // 금색
+                    2: { color: "#C0C0C0", medal: "🥈 " }, // 은색
+                    3: { color: "#CD7F32", medal: "🥉 " }, // 동색
+                };
+
+                const decoration = rankDecorations[entry.rank];
+                const color = decoration ? decoration.color : "#ffffff";
+                const medal = decoration ? decoration.medal : `${entry.rank}. `;
+
+                // 닉네임이 너무 길면 줄임
+                const maxNicknameLength = 12;
+                const displayName =
+                    entry.nickname.length > maxNicknameLength
+                        ? entry.nickname.substring(0, maxNicknameLength) + "..."
+                        : entry.nickname;
+
+                const text = `${medal}${displayName}`;
+                const scoreText = `${entry.score}점`;
+
+                rankText.setText(`${text}\n   ${scoreText}`);
+                rankText.setColor(color);
+            }
+        });
+
+        // 빈 슬롯에는 대기 메시지 표시
+        if (rankingData.rankings.length < 10) {
+            for (let i = rankingData.rankings.length; i < this.rankingTexts.length; i++) {
+                this.rankingTexts[i].setText(`${i + 1}. -`).setColor("#666666");
+            }
         }
     }
 
