@@ -1,0 +1,17 @@
+# bash에서 실행할 것.
+# 로컬에 webhook 컨테이너를 띄웠을 때, github에서 보낸 것 처럼 webhook 컨테이너에게 트리거를 주는 테스트 코드
+# .env-webhook있는 경로에서 실행할 것.
+
+docker logs -f bw-webhook
+# "serving hooks on ..." / "loaded 1 hook(s)" 로그 확인
+
+# 수동 테스트
+set -a; . ./.env-webhook; set +a
+BODY='{"ref":"refs/heads/main","test":"local"}'
+SIG="sha256=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" -hex | awk '{print $2}')"
+
+curl -isS -X POST http://127.0.0.1:9000/hooks/github \
+  -H "Content-Type: application/json" \
+  -H "X-GitHub-Event: push" \
+  -H "X-Hub-Signature-256: $SIG" \
+  --data "$BODY"
