@@ -15,3 +15,8 @@ curl -isS -X POST http://127.0.0.1:9000/hooks/github \
   -H "X-GitHub-Event: push" \
   -H "X-Hub-Signature-256: $SIG" \
   --data "$BODY"
+
+# docker webhook 실행 명령어
+#   -v /var/run/docker.sock:/var/run/docker.sock \  -> 호스트 Docker 데몬의 소켓을 컨테이너 안에 마운트. 컨테이너 안에서 docker ps, docker compose up -d 같은 명령을 실행하면 호스트의 Docker를 직접 제어 가능
+#   -v $(which docker):/usr/bin/docker:ro \         -> 호스트의 docker CLI 바이너리를 컨테이너 안에 읽기 전용으로 마운트. 컨테이너 안에서 docker 명령어를 실행하면 호스트의 Docker CLI를 그대로 사용하여 명령 실행할 수 있도록.
+docker run -d --name bw-webhook --restart=always -p 9000:9000 --env-file ./.env-webhook -v "$PWD":/hooks -v /var/run/docker.sock:/var/run/docker.sock -v $(which docker):/usr/bin/docker:ro almir/webhook -verbose -hooks=/hooks/hooks.json -template -hotreload
