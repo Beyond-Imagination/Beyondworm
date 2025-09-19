@@ -1,0 +1,4 @@
+# Lightsail 인스턴스 .env
+# example.com 부분에 lightsail에서 제공하는 커스텀 도메인 사용 예정. beyond-imagination.kr? beyond-imagination.net?
+SERVER_PUBLIC_URL=http://example.com/game
+CORS_ALLOWED_ORIGINS=https://beyond-imagination.github.io

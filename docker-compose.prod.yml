@@ -26,11 +26,3 @@ services:
     depends_on:
       - lobby-server
     restart: always
-
-  watchtower:
-    image: containrrr/watchtower
-    container_name: watchtower
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 60 # 60초마다 새 이미지가 있는지 확인합니다.
-    restart: always
