@@ -3,6 +3,7 @@ import { MovementStrategy } from "../types/movement";
 import { FoodSeekerMovementStrategy } from "../strategies/FoodSeekerMovementStrategy";
 import { PlayerTrackerMovementStrategy } from "../strategies/PlayerTrackerMovementStrategy";
 import { v4 as uuidv4 } from "uuid";
+import { createRandomPosition } from "../game/engine";
 
 /**
  * 움직임 전략 팩토리
@@ -24,7 +25,7 @@ export function createMovementStrategy(botType: BotType): MovementStrategy {
  */
 function createWormSegments(): WormSegment[] {
     const segments: WormSegment[] = [];
-    const startPosition = generateRandomStartPosition();
+    const startPosition = createRandomPosition();
 
     for (let i = 0; i < GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT; i++) {
         segments.push({
@@ -33,16 +34,6 @@ function createWormSegments(): WormSegment[] {
         });
     }
     return segments;
-}
-
-/**
- * 랜덤한 시작 위치를 생성합니다.
- */
-function generateRandomStartPosition(): { x: number; y: number } {
-    return {
-        x: Math.floor(Math.random() * (GAME_CONSTANTS.MAP_WIDTH - 200)) + 100,
-        y: Math.floor(Math.random() * (GAME_CONSTANTS.MAP_HEIGHT - 200)) + 100,
-    };
 }
 
 /**

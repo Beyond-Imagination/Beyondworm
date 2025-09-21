@@ -36,63 +36,42 @@ export default class GameScene extends Phaser.Scene {
     }
 
     create() {
-        const extendedWidth = GAME_CONSTANTS.MAP_WIDTH + FE_CONSTANTS.CAMERA_PADDING * 2;
-        const extendedHeight = GAME_CONSTANTS.MAP_HEIGHT + FE_CONSTANTS.CAMERA_PADDING * 2;
+        // 확장된 크기는 정사각형의 크기를 가진다
+        const extendedMapSize = (GAME_CONSTANTS.MAP_RADIUS + FE_CONSTANTS.CAMERA_PADDING) * 2;
 
         // 화면 크기에 맞는 배경 타일 스프라이트 추가 (효율적인 방식)
         this.backgroundTileSprite = this.add.tileSprite(
-            GAME_CONSTANTS.MAP_WIDTH / 2,
-            GAME_CONSTANTS.MAP_HEIGHT / 2,
-            extendedWidth,
-            extendedHeight,
+            GAME_CONSTANTS.MAP_RADIUS,
+            GAME_CONSTANTS.MAP_RADIUS,
+            extendedMapSize,
+            extendedMapSize,
             "background_pattern",
         );
         this.backgroundTileSprite.setOrigin(0.5, 0.5); // 화면 중앙에 배치하기 위해 원점 설정
         this.backgroundTileSprite.setDepth(GameScene.BACKGROUND_DEPTH); // 다른 모든 게임 요소보다 뒤에 있도록 설정
 
-        // 맵 경계 밖 위험 구역 표시
-        const dangerZone = this.add.graphics();
-        dangerZone.fillStyle(FE_CONSTANTS.BOUNDARY_COLOR, FE_CONSTANTS.BOUNDARY_TRANSPARENCY);
-        const dangerRects = [
-            // 상단
-            {
-                x: -FE_CONSTANTS.CAMERA_PADDING,
-                y: -FE_CONSTANTS.CAMERA_PADDING,
-                width: extendedWidth,
-                height: FE_CONSTANTS.CAMERA_PADDING,
-            },
-            // 하단
-            {
-                x: -FE_CONSTANTS.CAMERA_PADDING,
-                y: GAME_CONSTANTS.MAP_HEIGHT,
-                width: extendedWidth,
-                height: FE_CONSTANTS.CAMERA_PADDING,
-            },
-            // 좌측
-            {
-                x: -FE_CONSTANTS.CAMERA_PADDING,
-                y: 0,
-                width: FE_CONSTANTS.CAMERA_PADDING,
-                height: GAME_CONSTANTS.MAP_HEIGHT,
-            },
-            // 우측
-            {
-                x: GAME_CONSTANTS.MAP_WIDTH,
-                y: 0,
-                width: FE_CONSTANTS.CAMERA_PADDING,
-                height: GAME_CONSTANTS.MAP_HEIGHT,
-            },
-        ];
-        dangerRects.forEach(({ x, y, width, height }) => {
-            dangerZone.fillRect(x, y, width, height);
-        });
-        dangerZone.setDepth(FE_CONSTANTS.ZORDER_MAP_END_ELEMENT - 1); // 경계선보다는 뒤, 배경보다는 앞에 위치
+        // (A) 빨간 가림막(스크린 고정)
+        const cover = this.add.graphics().setScrollFactor(1).setDepth(FE_CONSTANTS.ZORDER_MAP_END_ELEMENT);
+        cover
+            .fillStyle(FE_CONSTANTS.BOUNDARY_COLOR, FE_CONSTANTS.BOUNDARY_TRANSPARENCY)
+            .fillRect(-FE_CONSTANTS.CAMERA_PADDING, -FE_CONSTANTS.CAMERA_PADDING, extendedMapSize, extendedMapSize);
 
-        // 맵 경계선 그리기
-        const border = this.add.graphics();
-        border.lineStyle(FE_CONSTANTS.BORDER_THICKNESS, FE_CONSTANTS.BORDER_COLOR, 1);
-        border.strokeRect(0, 0, GAME_CONSTANTS.MAP_WIDTH, GAME_CONSTANTS.MAP_HEIGHT);
-        border.setDepth(FE_CONSTANTS.ZORDER_MAP_END_ELEMENT); // 다른 요소들과 겹치지 않도록 깊이 설정
+        // (B) 마스크로 쓸 원(스크린 고정)
+        const maskGfx = this.add
+            .graphics()
+            .setScrollFactor(1)
+            .setDepth(FE_CONSTANTS.ZORDER_MAP_END_ELEMENT + 1);
+        maskGfx.fillStyle(0xffffff, 1);
+        maskGfx.fillCircle(0, 0, GAME_CONSTANTS.MAP_RADIUS);
+        maskGfx.visible = false; // 마스크 도형 자체는 보이지 않게
+
+        // GeometryMask 생성 + 반전: 원 안만 투명(=구멍)
+        const mask = new Phaser.Display.Masks.GeometryMask(this, maskGfx);
+        mask.invertAlpha = true;
+        cover.setMask(mask);
+
+        maskGfx.x = GAME_CONSTANTS.MAP_RADIUS;
+        maskGfx.y = GAME_CONSTANTS.MAP_RADIUS;
 
         // 트랜지션 효과를 위해 시작 시 투명하게 설정
         this.cameras.main.setAlpha(0);
@@ -494,7 +473,7 @@ export default class GameScene extends Phaser.Scene {
      */
     private InitializePlayer() {
         // camera setting
-        this.setupCamera(this.playerState.segments[0], GAME_CONSTANTS.MAP_WIDTH, GAME_CONSTANTS.MAP_HEIGHT);
+        this.setupCamera(this.playerState.segments[0], GAME_CONSTANTS.MAP_RADIUS * 2, GAME_CONSTANTS.MAP_RADIUS * 2);
     }
 
     /**
