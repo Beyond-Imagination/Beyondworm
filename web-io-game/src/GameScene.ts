@@ -50,13 +50,13 @@ export default class GameScene extends Phaser.Scene {
         this.backgroundTileSprite.setOrigin(0.5, 0.5); // 화면 중앙에 배치하기 위해 원점 설정
         this.backgroundTileSprite.setDepth(GameScene.BACKGROUND_DEPTH); // 다른 모든 게임 요소보다 뒤에 있도록 설정
 
-        // (A) 빨간 가림막(스크린 고정)
+        // (A) 빨간 가림막(플레이어 위치에 상관없이 맵에 고정됨)
         const cover = this.add.graphics().setScrollFactor(1).setDepth(FE_CONSTANTS.ZORDER_MAP_END_ELEMENT);
         cover
             .fillStyle(FE_CONSTANTS.BOUNDARY_COLOR, FE_CONSTANTS.BOUNDARY_TRANSPARENCY)
             .fillRect(-FE_CONSTANTS.CAMERA_PADDING, -FE_CONSTANTS.CAMERA_PADDING, extendedMapSize, extendedMapSize);
 
-        // (B) 마스크로 쓸 원(스크린 고정)
+        // (B) 마스크로 쓸 원(플레이어 위치에 상관없이 맵에 고정됨)
         const maskGfx = this.add
             .graphics()
             .setScrollFactor(1)

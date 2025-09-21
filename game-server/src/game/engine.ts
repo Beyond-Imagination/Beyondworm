@@ -25,7 +25,7 @@ export function createRandomPosition(): { x: number; y: number } {
     // 반지름의 제곱근 분포를 써야 원 안에 고르게 분포된다고 함
     // 100을 빼는 이유는 지렁이가 선과 가까이 스폰되면 태어나자마자 죽는 억까가 있을수 있고
     // 먹이가 선과 가까이 스폰되면 먹기 힘들수 있으니 약간의 오프셋을 둠
-    const radius = Math.sqrt(Math.random()) * (GAME_CONSTANTS.MAP_RADIUS - 100);
+    const radius = Math.sqrt(Math.random()) * (GAME_CONSTANTS.MAP_RADIUS - GAME_CONSTANTS.MAP_BOUNDARY_OFFSET);
 
     // 중심점 (반지름,반지름) 에서 radius만큼 떨어져 있으며 그 방향은 angle에 의해 구해짐
     return {
