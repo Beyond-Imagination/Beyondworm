@@ -159,6 +159,14 @@ function updateAndBroadcastGameState(
     // 지렁이 상태 업데이트
     updateWorld(deltaTime, worms, foods, targetDirections, botMovementStrategies);
 
+    const mapBoundaryExceedingWorms = handleMapBoundaryExceedingWorms(worms, foods);
+
+    if (mapBoundaryExceedingWorms.length > 0) {
+        for (const wormId of mapBoundaryExceedingWorms) {
+            io.emit("worm-died", { killedWormId: wormId, killerWormId: null });
+        }
+    }
+
     // 서버에서 직접 모든 지렁이 간의 충돌 감지 및 처리
     const wormCollisions = handleWormCollisions(worms, foods);
 
@@ -175,14 +183,6 @@ function updateAndBroadcastGameState(
     // 봇이 먹이를 먹었다면 클라이언트들에게 알림
     if (botCollisions.length > 0) {
         io.emit("food-eaten", botCollisions);
-    }
-
-    const mapBoundaryExceedingWorms = handleMapBoundaryExceedingWorms(worms, foods);
-
-    if (mapBoundaryExceedingWorms.length > 0) {
-        for (const wormId of mapBoundaryExceedingWorms) {
-            io.emit("worm-died", { killedWormId: wormId, killerWormId: null });
-        }
     }
 
     // 클라이언트에게 게임 상태 전송

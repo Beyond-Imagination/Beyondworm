@@ -524,11 +524,8 @@ export function handleMapBoundaryExceedingWorms(worms: Map<string, Worm>, foods:
 
         const head = worm.segments[0];
         const isOutOfBounds =
-            head.x - worm.radius < -GAME_CONSTANTS.MAP_BOUNDARY_OFFSET ||
-            head.x + worm.radius > GAME_CONSTANTS.MAP_RADIUS + GAME_CONSTANTS.MAP_BOUNDARY_OFFSET ||
-            head.y - worm.radius < -GAME_CONSTANTS.MAP_BOUNDARY_OFFSET ||
-            head.y + worm.radius > GAME_CONSTANTS.MAP_RADIUS + GAME_CONSTANTS.MAP_BOUNDARY_OFFSET;
-
+            Math.hypot(head.x - GAME_CONSTANTS.MAP_RADIUS, head.y - GAME_CONSTANTS.MAP_RADIUS) > // 머리 중심 좌표와 맵 중심 좌표 사이 거리
+            GAME_CONSTANTS.MAP_RADIUS - worm.radius + GAME_CONSTANTS.MAP_BOUNDARY_DEAD_OFFSET; // 맵 반지름 - 지렁이 반지름에서 약간의 오프셋을 준걸 넘으면 죽음처리
         if (isOutOfBounds) {
             killedWormIds.push(worm.id);
             killWorm(worm, foods);
