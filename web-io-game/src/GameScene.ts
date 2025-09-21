@@ -90,12 +90,7 @@ export default class GameScene extends Phaser.Scene {
             this.gameClient.stopSprint();
         });
 
-        // 브라우저 zoom에도 게임 오브젝트 크기가 변하지 않도록 카메라 zoom 역보정
-        const adjustCameraZoom = () => {
-            this.cameras.main.setZoom(1 / window.devicePixelRatio);
-        };
-        adjustCameraZoom();
-        window.addEventListener('resize', adjustCameraZoom);
+        
     }
 
     /**
