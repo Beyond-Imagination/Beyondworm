@@ -427,8 +427,6 @@ export default class GameScene extends Phaser.Scene {
             worm.updateNicknamePosition(this.cameras.main.zoom);
         }
 
-        
-
         // 카메라 업데이트
         this.updateCamera();
     }
@@ -499,12 +497,20 @@ export default class GameScene extends Phaser.Scene {
         const zoom = baseZoom * (baseRadius / currentRadius);
         // 카메라 zoom을 브라우저 zoom에 맞게 고정
         // this.cameras.main.setZoom(1 / window.devicePixelRatio);
-        console.log(this.cameras.main.zoom, " ",zoom," ", FE_CONSTANTS.CAMERA_ZOOM_LERP_SPEED," ",window.devicePixelRatio);
+        console.log(
+            this.cameras.main.zoom,
+            " ",
+            zoom,
+            " ",
+            FE_CONSTANTS.CAMERA_ZOOM_LERP_SPEED,
+            " ",
+            window.devicePixelRatio,
+        );
         // this.cameras.main.setZoom(
         //     Phaser.Math.Linear(this.cameras.main.zoom, zoom, FE_CONSTANTS.CAMERA_ZOOM_LERP_SPEED),
         // );
-        this.cameras.main.setZoom(zoom/window.devicePixelRatio);
-    }   
+        this.cameras.main.setZoom(zoom / window.devicePixelRatio);
+    }
 
     /**
      * 플레이어가 죽었을 때 DeathScene을 표시합니다.
