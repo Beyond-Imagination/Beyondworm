@@ -4,14 +4,25 @@ import axios from "axios";
 import { logDetailedError } from "@beyondworm/shared";
 
 const app = express();
-app.use(cors());
+
+// CORS 설정: 환경 변수에서 허용된 Origin 목록을 가져와 적용
+const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
+    ? process.env.CORS_ALLOWED_ORIGINS.split(",")
+    : ["http://localhost:5173"]; // 개발용 기본값
+app.use(
+    cors({
+        origin: allowedOrigins,
+        credentials: true,
+    }),
+);
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 
 // 1. 게임 서버 정보를 캐싱할 자료구조
 interface GameServer {
-    address: string;
+    publicAddress: string;
+    internalAddress: string;
     playerCount: number;
     lastSeen: number;
 }
@@ -21,30 +32,37 @@ const serverCache = new Map<string, GameServer>();
 
 // 1) 게임 서버 등록 및 정보 업데이트 엔드포인트
 app.post("/server", (req: Request, res: Response) => {
-    const { serverId, address } = req.body as { serverId: string; address: string };
+    const { serverId, publicAddress, internalAddress } = req.body as {
+        serverId: string;
+        publicAddress: string;
+        internalAddress: string;
+    };
 
-    if (!serverId || !address) {
-        return res.status(400).json({ message: "Missing required server information: serverId, address" });
+    if (!serverId || !publicAddress || !internalAddress) {
+        return res
+            .status(400)
+            .json({ message: "Missing required server information: serverId, publicAddress, internalAddress" });
     }
 
     // 주소가 같은 기존 서버를 찾아 삭제
     for (const [id, server] of serverCache.entries()) {
-        if (server.address === address) {
+        if (server.publicAddress === publicAddress || server.internalAddress === internalAddress) {
             serverCache.delete(id);
-            console.log(`Removed existing server entry for address ${address} with old id ${id}.`);
+            console.log(`Removed existing server entry for address ${publicAddress} with old id ${id}.`);
             break;
         }
     }
 
     const now = Date.now();
     const serverInfo: GameServer = {
-        address,
+        publicAddress,
+        internalAddress,
         playerCount: 0,
         lastSeen: now,
     };
 
     serverCache.set(serverId, serverInfo);
-    console.log(`Server registered/updated: ${serverId} at ${address}.`);
+    console.log(`Server registered/updated: ${serverId} at ${publicAddress} (internal: ${internalAddress}).`);
 
     res.status(200).json({ message: "Server information received" });
 });
@@ -75,9 +93,16 @@ app.patch("/server", (req: Request, res: Response) => {
 app.get("/servers", (req: Request, res: Response) => {
     const serverList = Array.from(serverCache.entries()).map(([id, data]) => ({
         id,
-        ...data,
+        address: data.publicAddress, // 클라이언트에게는 publicAddress를 address로 전달
+        playerCount: data.playerCount,
+        lastSeen: data.lastSeen,
     }));
     res.status(200).json(serverList);
+});
+
+// 4) 헬스 체크 엔드포인트
+app.get("/health", (req: Request, res: Response) => {
+    res.status(200).json({ status: "ok" });
 });
 
 // 주기적으로 게임 서버 헬스 체크
@@ -94,12 +119,13 @@ const healthCheckInterval = setInterval(async () => {
     const serversToRemove: string[] = [];
     const checkPromises = Array.from(serverCache.entries()).map(async ([serverId, serverInfo]) => {
         try {
-            await axios.get(`${serverInfo.address}/health`, { timeout: HEALTH_CHECK_TIMEOUT });
+            // 헬스체크는 internalAddress 사용
+            await axios.get(`${serverInfo.internalAddress}/health`, { timeout: HEALTH_CHECK_TIMEOUT });
             // Health check successful
             console.log(`✅ Health check successful for server ${serverId}`);
             serverInfo.lastSeen = Date.now();
         } catch (error: unknown) {
-            logDetailedError(error, `❌ Health check failed for server ${serverId} at ${serverInfo.address}:`);
+            logDetailedError(error, `❌ Health check failed for server ${serverId} at ${serverInfo.internalAddress}:`);
             serversToRemove.push(serverId);
         }
     });

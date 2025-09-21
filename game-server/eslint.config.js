@@ -19,6 +19,7 @@ module.exports = tseslint.config(
             "@typescript-eslint/no-misused-promises": "off",
             "@typescript-eslint/no-unused-vars": "off",
             "@typescript-eslint/restrict-template-expressions": "off",
+            "@typescript-eslint/no-floating-promises": "off",
         },
     },
     prettierConfig,

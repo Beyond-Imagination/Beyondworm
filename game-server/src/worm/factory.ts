@@ -93,10 +93,10 @@ export function createBotWorm(botType: BotType): Worm {
 /**
  * 플레이어 지렁이 생성 함수
  */
-export function createPlayerWorm(playerId: string): Worm {
+export function createPlayerWorm(playerId: string, nickname: string): Worm {
     return {
         id: playerId,
-        nickname: playerId,
+        nickname: nickname,
         score: 0,
         type: WormType.Player,
         segments: createWormSegments(),

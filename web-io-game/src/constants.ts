@@ -14,4 +14,13 @@ export const FE_CONSTANTS = {
     ZORDER_SEGMENT: 1000,
     ZORDER_MAP_END_ELEMENT: 1001,
     WORM_POSITION_LERP_FACTOR: 0.3,
+    NICKNAME_Y_OFFSET: 20,
+    NICKNAME_STYLE: {
+        fontSize: "14px",
+        color: "#ffffff",
+        stroke: "#000000",
+        strokeThickness: 2,
+        fontFamily: "Arial, sans-serif",
+    },
+    ZORDER_NICKNAME: 1000,
 };
