@@ -89,6 +89,13 @@ export default class GameScene extends Phaser.Scene {
         this.input.keyboard.on("keyup-SPACE", () => {
             this.gameClient.stopSprint();
         });
+
+        // 브라우저 zoom에도 게임 오브젝트 크기가 변하지 않도록 카메라 zoom 역보정
+        const adjustCameraZoom = () => {
+            this.cameras.main.setZoom(1 / window.devicePixelRatio);
+        };
+        adjustCameraZoom();
+        window.addEventListener('resize', adjustCameraZoom);
     }
 
     /**
@@ -426,6 +433,9 @@ export default class GameScene extends Phaser.Scene {
             worm.interpolatePositions();
             worm.updateNicknamePosition(this.cameras.main.zoom);
         }
+
+        // 카메라 zoom을 브라우저 zoom에 맞게 고정
+        this.cameras.main.setZoom(1 / window.devicePixelRatio);
 
         // 카메라 업데이트
         this.updateCamera();
