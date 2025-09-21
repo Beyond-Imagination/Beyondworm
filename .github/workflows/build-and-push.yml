@@ -1,0 +1,41 @@
+
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push lobby-server image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          dockerfile: ./lobby-server/Dockerfile
+          push: true
+          tags: ghcr.io/beyond-imagination/beyondworm-lobby-server:latest
+
+      - name: Build and push game-server image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          dockerfile: ./game-server/Dockerfile
+          push: true
+          tags: ghcr.io/beyond-imagination/beyondworm-game-server:latest

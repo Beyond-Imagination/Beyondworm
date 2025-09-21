@@ -11,8 +11,41 @@ export default class GameClient {
         private scene: GameScene,
         gameServerUrl: string,
     ) {
-        this.socket = io(gameServerUrl);
-        this.setupEventListeners();
+        try {
+            const url = new URL(gameServerUrl);
+            const baseUrl = url.origin;
+            const options: Partial<ManagerOptions & SocketOptions> = {};
+
+            // URL의 경로가 '/'가 아닌지 확인 (즉, /game 같은 추가 경로가 있는지 확인)
+            // 경로가 있다는 것은 Nginx 리버스 프록시를 사용하는 운영 환경임을 의미.
+            if (url.pathname !== "/") {
+                // 운영 환경일 경우에만 path 옵션을 추가
+                const gamePath = url.pathname.endsWith("/") ? url.pathname.slice(0, -1) : url.pathname;
+                options.path = `${gamePath}/socket.io/`;
+            }
+
+            console.log(`Connecting to ${baseUrl} with options:`, options);
+
+            this.socket = io(baseUrl, options);
+
+            this.setupEventListeners();
+
+            // 게임 시작 시 username을 서버로 전송
+            this.sendUserInfo();
+        } catch (error) {
+            console.error("Invalid Game Server URL:", gameServerUrl, error);
+            this.socket = io(); // 연결 실패를 유도
+        }
+    }
+
+    /**
+     * 사용자 정보를 서버로 전송합니다.
+     */
+    private sendUserInfo() {
+        const username = this.scene.game.registry.get("username") as string;
+        if (username) {
+            this.socket.emit("set-username", { username });
+        }
     }
 
     private setupEventListeners() {

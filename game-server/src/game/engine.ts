@@ -18,14 +18,29 @@ export function createFoodAtPosition(x: number, y: number): Food {
     };
 }
 
+export function createRandomPosition(): { x: number; y: number } {
+    const angle = Math.random() * 2 * Math.PI; // 0 ~ 2π
+
+    // Math.sqrt()를 쓰는 이유: 그냥 Math.random() * R를 쓰면 중심보다 바깥쪽에 점이 몰림.
+    // 반지름의 제곱근 분포를 써야 원 안에 고르게 분포된다고 함
+    // 100을 빼는 이유는 지렁이가 선과 가까이 스폰되면 태어나자마자 죽는 억까가 있을수 있고
+    // 먹이가 선과 가까이 스폰되면 먹기 힘들수 있으니 약간의 오프셋을 둠
+    const radius = Math.sqrt(Math.random()) * (GAME_CONSTANTS.MAP_RADIUS - GAME_CONSTANTS.MAP_BOUNDARY_OFFSET);
+
+    // 중심점 (반지름,반지름) 에서 radius만큼 떨어져 있으며 그 방향은 angle에 의해 구해짐
+    return {
+        x: GAME_CONSTANTS.MAP_RADIUS + radius * Math.cos(angle),
+        y: GAME_CONSTANTS.MAP_RADIUS + radius * Math.sin(angle),
+    };
+}
+
 /**
  * 랜덤 먹이를 생성합니다.
  */
 export function createRandomFood(): Food {
-    return createFoodAtPosition(
-        Math.random() * (GAME_CONSTANTS.MAP_WIDTH - 200) + 100,
-        Math.random() * (GAME_CONSTANTS.MAP_HEIGHT - 200) + 100,
-    );
+    const position = createRandomPosition();
+
+    return createFoodAtPosition(position.x, position.y);
 }
 
 /**
@@ -510,9 +525,9 @@ export function handleMapBoundaryExceedingWorms(worms: Map<string, Worm>, foods:
         const head = worm.segments[0];
         const isOutOfBounds =
             head.x - worm.radius < -GAME_CONSTANTS.MAP_BOUNDARY_OFFSET ||
-            head.x + worm.radius > GAME_CONSTANTS.MAP_WIDTH + GAME_CONSTANTS.MAP_BOUNDARY_OFFSET ||
+            head.x + worm.radius > GAME_CONSTANTS.MAP_RADIUS + GAME_CONSTANTS.MAP_BOUNDARY_OFFSET ||
             head.y - worm.radius < -GAME_CONSTANTS.MAP_BOUNDARY_OFFSET ||
-            head.y + worm.radius > GAME_CONSTANTS.MAP_HEIGHT + GAME_CONSTANTS.MAP_BOUNDARY_OFFSET;
+            head.y + worm.radius > GAME_CONSTANTS.MAP_RADIUS + GAME_CONSTANTS.MAP_BOUNDARY_OFFSET;
 
         if (isOutOfBounds) {
             killedWormIds.push(worm.id);

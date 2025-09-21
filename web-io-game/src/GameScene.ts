@@ -36,63 +36,42 @@ export default class GameScene extends Phaser.Scene {
     }
 
     create() {
-        const extendedWidth = GAME_CONSTANTS.MAP_WIDTH + FE_CONSTANTS.CAMERA_PADDING * 2;
-        const extendedHeight = GAME_CONSTANTS.MAP_HEIGHT + FE_CONSTANTS.CAMERA_PADDING * 2;
+        // 확장된 크기는 정사각형의 크기를 가진다
+        const extendedMapSize = (GAME_CONSTANTS.MAP_RADIUS + FE_CONSTANTS.CAMERA_PADDING) * 2;
 
         // 화면 크기에 맞는 배경 타일 스프라이트 추가 (효율적인 방식)
         this.backgroundTileSprite = this.add.tileSprite(
-            GAME_CONSTANTS.MAP_WIDTH / 2,
-            GAME_CONSTANTS.MAP_HEIGHT / 2,
-            extendedWidth,
-            extendedHeight,
+            GAME_CONSTANTS.MAP_RADIUS,
+            GAME_CONSTANTS.MAP_RADIUS,
+            extendedMapSize,
+            extendedMapSize,
             "background_pattern",
         );
         this.backgroundTileSprite.setOrigin(0.5, 0.5); // 화면 중앙에 배치하기 위해 원점 설정
         this.backgroundTileSprite.setDepth(GameScene.BACKGROUND_DEPTH); // 다른 모든 게임 요소보다 뒤에 있도록 설정
 
-        // 맵 경계 밖 위험 구역 표시
-        const dangerZone = this.add.graphics();
-        dangerZone.fillStyle(FE_CONSTANTS.BOUNDARY_COLOR, FE_CONSTANTS.BOUNDARY_TRANSPARENCY);
-        const dangerRects = [
-            // 상단
-            {
-                x: -FE_CONSTANTS.CAMERA_PADDING,
-                y: -FE_CONSTANTS.CAMERA_PADDING,
-                width: extendedWidth,
-                height: FE_CONSTANTS.CAMERA_PADDING,
-            },
-            // 하단
-            {
-                x: -FE_CONSTANTS.CAMERA_PADDING,
-                y: GAME_CONSTANTS.MAP_HEIGHT,
-                width: extendedWidth,
-                height: FE_CONSTANTS.CAMERA_PADDING,
-            },
-            // 좌측
-            {
-                x: -FE_CONSTANTS.CAMERA_PADDING,
-                y: 0,
-                width: FE_CONSTANTS.CAMERA_PADDING,
-                height: GAME_CONSTANTS.MAP_HEIGHT,
-            },
-            // 우측
-            {
-                x: GAME_CONSTANTS.MAP_WIDTH,
-                y: 0,
-                width: FE_CONSTANTS.CAMERA_PADDING,
-                height: GAME_CONSTANTS.MAP_HEIGHT,
-            },
-        ];
-        dangerRects.forEach(({ x, y, width, height }) => {
-            dangerZone.fillRect(x, y, width, height);
-        });
-        dangerZone.setDepth(FE_CONSTANTS.ZORDER_MAP_END_ELEMENT - 1); // 경계선보다는 뒤, 배경보다는 앞에 위치
+        // (A) 빨간 가림막(플레이어 위치에 상관없이 맵에 고정됨)
+        const cover = this.add.graphics().setScrollFactor(1).setDepth(FE_CONSTANTS.ZORDER_MAP_END_ELEMENT);
+        cover
+            .fillStyle(FE_CONSTANTS.BOUNDARY_COLOR, FE_CONSTANTS.BOUNDARY_TRANSPARENCY)
+            .fillRect(-FE_CONSTANTS.CAMERA_PADDING, -FE_CONSTANTS.CAMERA_PADDING, extendedMapSize, extendedMapSize);
 
-        // 맵 경계선 그리기
-        const border = this.add.graphics();
-        border.lineStyle(FE_CONSTANTS.BORDER_THICKNESS, FE_CONSTANTS.BORDER_COLOR, 1);
-        border.strokeRect(0, 0, GAME_CONSTANTS.MAP_WIDTH, GAME_CONSTANTS.MAP_HEIGHT);
-        border.setDepth(FE_CONSTANTS.ZORDER_MAP_END_ELEMENT); // 다른 요소들과 겹치지 않도록 깊이 설정
+        // (B) 마스크로 쓸 원(플레이어 위치에 상관없이 맵에 고정됨)
+        const maskGfx = this.add
+            .graphics()
+            .setScrollFactor(1)
+            .setDepth(FE_CONSTANTS.ZORDER_MAP_END_ELEMENT + 1);
+        maskGfx.fillStyle(0xffffff, 1);
+        maskGfx.fillCircle(0, 0, GAME_CONSTANTS.MAP_RADIUS);
+        maskGfx.visible = false; // 마스크 도형 자체는 보이지 않게
+
+        // GeometryMask 생성 + 반전: 원 안만 투명(=구멍)
+        const mask = new Phaser.Display.Masks.GeometryMask(this, maskGfx);
+        mask.invertAlpha = true;
+        cover.setMask(mask);
+
+        maskGfx.x = GAME_CONSTANTS.MAP_RADIUS;
+        maskGfx.y = GAME_CONSTANTS.MAP_RADIUS;
 
         // 트랜지션 효과를 위해 시작 시 투명하게 설정
         this.cameras.main.setAlpha(0);
@@ -174,6 +153,9 @@ export default class GameScene extends Phaser.Scene {
         const head = wormState.segments[0];
         this.wormHeadsGroup.add(head);
 
+        // 닉네임 텍스트 생성 및 추가
+        this.createNicknameText(wormState, serverWorm.nickname);
+
         // 현재 플레이어의 몸통만 바디 그룹에 추가
         if (serverWorm.id === this.playerId) {
             for (let i = 1; i < wormState.segments.length; i++) {
@@ -192,6 +174,8 @@ export default class GameScene extends Phaser.Scene {
         if (wormIndex !== -1) {
             const worm = this.worms[wormIndex];
             this.wormHeadsGroup.remove(worm.segments[0], false, false);
+
+            worm.destroyNicknameText();
 
             // 지렁이 세그먼트들 제거
             for (const segment of worm.segments) {
@@ -254,6 +238,30 @@ export default class GameScene extends Phaser.Scene {
     }
 
     /**
+     * 지렁이의 닉네임 텍스트를 생성합니다.
+     */
+    private createNicknameText(wormState: WormState, nickname: string) {
+        if (wormState.segments.length === 0) return;
+
+        const head = wormState.segments[0];
+        const nicknameText = this.add.text(
+            head.x,
+            head.y - head.radius - FE_CONSTANTS.NICKNAME_Y_OFFSET,
+            nickname,
+            FE_CONSTANTS.NICKNAME_STYLE,
+        );
+
+        // 텍스트를 중앙 정렬
+        nicknameText.setOrigin(0.5, 0.5);
+
+        // 높은 depth로 설정하여 다른 요소들 위에 표시
+        nicknameText.setDepth(FE_CONSTANTS.ZORDER_NICKNAME);
+
+        // WormState에 닉네임 텍스트 설정
+        wormState.setNicknameText(nicknameText);
+    }
+
+    /**
      * 서버 상태로 개별 지렁이 업데이트 (보간 처리 적용)
      */
     private updateWormFromServer(clientWorm: WormState, serverWorm: Worm) {
@@ -307,6 +315,9 @@ export default class GameScene extends Phaser.Scene {
     private clearAllWorms() {
         for (const worm of this.worms) {
             this.wormHeadsGroup.remove(worm.segments[0], false, false);
+
+            worm.destroyNicknameText();
+
             for (const segment of worm.segments) {
                 segment.destroy();
             }
@@ -440,6 +451,7 @@ export default class GameScene extends Phaser.Scene {
         // 모든 지렁이의 보간 처리 수행
         for (const worm of this.worms) {
             worm.interpolatePositions();
+            worm.updateNicknamePosition(this.cameras.main.zoom);
         }
 
         // 카메라 업데이트
@@ -462,7 +474,7 @@ export default class GameScene extends Phaser.Scene {
      */
     private InitializePlayer() {
         // camera setting
-        this.setupCamera(this.playerState.segments[0], GAME_CONSTANTS.MAP_WIDTH, GAME_CONSTANTS.MAP_HEIGHT);
+        this.setupCamera(this.playerState.segments[0], GAME_CONSTANTS.MAP_RADIUS * 2, GAME_CONSTANTS.MAP_RADIUS * 2);
     }
 
     /**

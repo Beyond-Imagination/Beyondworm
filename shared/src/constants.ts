@@ -2,9 +2,8 @@ const tickRate = 30; // 초당 틱 수
 
 export const GAME_CONSTANTS = {
     // Map
-    MAP_WIDTH: 15000,
-    MAP_HEIGHT: 10000,
-    MAP_BOUNDARY_OFFSET: 50, // 맵 경계를 넘어도 죽지 않는 오프셋(px)
+    MAP_RADIUS: 5000,
+    MAP_BOUNDARY_OFFSET: 100,
 
     // Tick
     TICK_RATE: tickRate, // 초당 틱 수
