@@ -39,7 +39,9 @@ export function updateFoods(foods: Map<string, Food>): void {
 }
 
 function updateWormRadius(worm: Worm): void {
-    worm.radius = worm.score * GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS + GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS;
+    // 지렁이가 커질수록 다음 성장을 위해 필요한 점수가 점차 증가해서
+    // 성장이 처음엔 빠르다가 점차 느려진다
+    worm.radius = GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS * Math.sqrt(worm.score) + GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS;
 }
 
 /**
