@@ -513,3 +513,24 @@ export function dropFoodOnDeath(worm: Worm, foods: Map<string, Food>): void {
 
     console.log(`💀 Death food drop: Worm ${worm.id} dropped about ${foodCount} foods`);
 }
+
+export function handleMapBoundaryExceedingWorms(worms: Map<string, Worm>, foods: Map<string, Food>): string[] {
+    const allWorms = Array.from(worms.values());
+    const killedWormIds: string[] = [];
+
+    for (const worm of allWorms) {
+        // 맵 경계 체크: 머리가 맵 밖으로 나가면 사망
+        if (worm.isDead) continue;
+
+        const head = worm.segments[0];
+        const isOutOfBounds =
+            Math.hypot(head.x - GAME_CONSTANTS.MAP_RADIUS, head.y - GAME_CONSTANTS.MAP_RADIUS) > // 머리 중심 좌표와 맵 중심 좌표 사이 거리
+            GAME_CONSTANTS.MAP_RADIUS - worm.radius + GAME_CONSTANTS.MAP_BOUNDARY_DEAD_OFFSET; // 맵 반지름 - 지렁이 반지름에서 약간의 오프셋을 준걸 넘으면 죽음처리
+        if (isOutOfBounds) {
+            killedWormIds.push(worm.id);
+            killWorm(worm, foods);
+        }
+    }
+
+    return killedWormIds;
+}

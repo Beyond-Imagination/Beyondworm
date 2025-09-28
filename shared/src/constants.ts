@@ -4,6 +4,7 @@ export const GAME_CONSTANTS = {
     // Map
     MAP_RADIUS: 5000,
     MAP_BOUNDARY_OFFSET: 100,
+    MAP_BOUNDARY_DEAD_OFFSET: 30,
 
     // Tick
     TICK_RATE: tickRate, // 초당 틱 수
