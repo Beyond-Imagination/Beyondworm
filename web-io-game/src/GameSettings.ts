@@ -27,8 +27,8 @@ export default class GameSettings {
     /**
      * 게임 설정 값을 변경합니다.
      *
-     * - 단일 값 변경: set("MAP_WIDTH", 20000)
-     * - 여러 값 한 번에 변경: set({ MAP_WIDTH: 20000, MAP_HEIGHT: 15000 })
+     * - 단일 값 변경: set("MAP_RADIUS", 20000)
+     * - 여러 값 한 번에 변경: set({ MAP_RADIUS: 20000, CAMERA_PADDING: 15000 })
      *
      * @param key 설정할 항목의 이름 (문자열)
      * @param value 설정할 값
@@ -36,10 +36,10 @@ export default class GameSettings {
      *
      * @example
      * // 단일 값 변경
-     * GameSettings.instance.set("MAP_WIDTH", 20000);
+     * GameSettings.instance.set("MAP_RADIUS", 20000);
      *
      * // 여러 값 한 번에 변경
-     * GameSettings.instance.set({ MAP_WIDTH: 20000, MAP_HEIGHT: 15000 });
+     * GameSettings.instance.set({ MAP_RADIUS: 20000, CAMERA_PADDING: 15000 });
      */
     public set<K extends keyof GameSettingsType>(key: K, value: GameSettingsType[K]): void;
     public set(settings: Partial<GameSettingsType>): void;
