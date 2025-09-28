@@ -28,7 +28,7 @@ jobs:
         working-directory: web-io-game
 
       - name: Build client
-        run: npm run build
+        run: npx vite build --outDir dist
         working-directory: web-io-game
 
       - name: Setup Pages
