@@ -40,6 +40,7 @@ COPY game-server/package*.json ./
 # 빌더 산출물만 가져오기
 COPY --from=builder /app/game-server/node_modules ./node_modules
 COPY --from=builder /app/game-server/dist ./dist
+COPY --from=builder /app/shared/package.json ./shared/package.json
 COPY --from=builder /app/shared/dist ./shared/dist
 
 # 실행
