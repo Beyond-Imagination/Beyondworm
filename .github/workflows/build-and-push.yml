@@ -27,15 +27,15 @@ jobs:
       - name: Build and push lobby-server image
         uses: docker/build-push-action@v5
         with:
-          context: ./lobby-server
-          dockerfile: Dockerfile
+          context: .
+          dockerfile: ./lobby-server/Dockerfile
           push: true
           tags: ghcr.io/beyond-imagination/beyondworm-lobby-server:latest
 
       - name: Build and push game-server image
         uses: docker/build-push-action@v4
         with:
-          context: ./game-server
-          dockerfile: Dockerfile
+          context: .
+          dockerfile: ./game-server/Dockerfile
           push: true
           tags: ghcr.io/beyond-imagination/beyondworm-game-server:latest

@@ -40,10 +40,7 @@ COPY game-server/package*.json ./
 # 빌더 산출물만 가져오기
 COPY --from=builder /app/game-server/node_modules ./node_modules
 COPY --from=builder /app/game-server/dist ./dist
-
-# (중요) file: 링크의 안정성 위해 shared도 옆에 둔다
-WORKDIR /app
-COPY --from=builder /app/shared ./shared
+COPY --from=builder /app/shared/dist ./shared/dist
 
 # 실행
 WORKDIR /app/game-server
