@@ -28,7 +28,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          dockerfile: ./lobby-server/Dockerfile
+          file: ./lobby-server/Dockerfile
           push: true
           tags: ghcr.io/beyond-imagination/beyondworm-lobby-server:latest
 
@@ -36,6 +36,6 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          dockerfile: ./game-server/Dockerfile
+          file: ./game-server/Dockerfile
           push: true
           tags: ghcr.io/beyond-imagination/beyondworm-game-server:latest
