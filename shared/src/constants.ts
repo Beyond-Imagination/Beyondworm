@@ -24,7 +24,8 @@ export const GAME_CONSTANTS = {
     SEGMENT_SPACING: 14, // 세그먼트 간 고정 거리(px)
     SEGMENT_DEFAULT_COUNT: 5, // 기본 세그먼트(원) 개수
     SEGMENT_DEFAULT_RADIUS: 40, // 기본 세그먼트(원) 반지름(px)
-    SEGMENT_GROWTH_RADIUS: 1.5, // 먹이를 먹을 때 세그먼트 반지름 증가량(px)
+    SEGMENT_GROWTH_RADIUS: 2, // 세그먼트 반지름 성장 계수(px)
+    SEGMENT_GROWTH_EXPONENT: 0.5, // 성장 곡선 지수
 
     // Food
     FOOD_RADIUS: 30, // 먹이(원) 반지름(px)
