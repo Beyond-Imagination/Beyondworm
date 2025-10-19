@@ -509,7 +509,14 @@ export default class GameScene extends Phaser.Scene {
         // this.cameras.main.setZoom(
         //     Phaser.Math.Linear(this.cameras.main.zoom, zoom, FE_CONSTANTS.CAMERA_ZOOM_LERP_SPEED),
         // );
-        this.cameras.main.setZoom(zoom / window.devicePixelRatio);
+        // Phaser.Math.Linear(this.cameras.main.zoom, zoom / window.devicePixelRatio, FE_CONSTANTS.CAMERA_ZOOM_LERP_SPEED)
+        this.cameras.main.setZoom(
+            Phaser.Math.Linear(
+                this.cameras.main.zoom,
+                zoom / window.devicePixelRatio,
+                FE_CONSTANTS.CAMERA_ZOOM_LERP_SPEED,
+            ),
+        );
     }
 
     /**
