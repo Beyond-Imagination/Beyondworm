@@ -14,14 +14,10 @@ LOG=/hooks/deploy.log
       printf "%s" "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
       # 2) 최신 이미지 pull
-      docker compose \
-        --project-directory /srv/mono \                     # docker-compose 명령어가 실행될 프로젝트 디렉토리 지정
-        -f /srv/mono/docker-compose.prod.yml pull           # 기본적으로 실행 위치의 docker-compose.yml을 사용하지만, 지정된 파일을 사용하도록 지정.
+      docker compose -f /webhook/docker-compose.yml pull
 
       # 3) 서비스 무중단 재기동
-      docker compose \
-        --project-directory /srv/mono \
-        -f /srv/mono/docker-compose.prod.yml up -d
+      docker compose -f /webhook/docker-compose.yml up -d
 
       # 4) 간단 헬스체크 (실패해도 스크립트 전체는 성공)
       curl -sfI http://127.0.0.1:8081/health || true
