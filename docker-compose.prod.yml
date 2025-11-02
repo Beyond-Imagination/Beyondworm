@@ -6,7 +6,7 @@ services:
     image: ghcr.io/beyond-imagination/beyondworm-lobby-server:latest
     container_name: lobby-server
     ports:
-      - "8081:8081"
+      - "127.0.0.1:8081:8081"
     environment:
       - PORT=8081
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS} # 이 값은 .env 파일에서 읽어옵니다.
@@ -16,7 +16,7 @@ services:
     image: ghcr.io/beyond-imagination/beyondworm-game-server:latest
     container_name: game-server
     ports:
-      - "7200:7200"
+      - "127.0.0.1:7200:7200"
     environment:
       - PORT=7200
       - LOBBY_SERVER_URL=http://lobby-server:8081
