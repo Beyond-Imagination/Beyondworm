@@ -3,7 +3,6 @@ import { MovementStrategy } from "../types/movement";
 import { getAngleDifference, vectorToAngle, angleToVector } from "../utils/math";
 import { v4 as uuidv4 } from "uuid";
 import { createBotWorm, createMovementStrategy } from "../worm/factory";
-import { Server as SocketIOServer } from "socket.io";
 
 /**
  * 특정 위치에 먹이를 생성합니다.
@@ -295,7 +294,6 @@ function removeDeadPlayer(
     playerId: string,
     worms: Map<string, Worm>,
     targetDirections: Map<string, { x: number; y: number }>,
-    io: SocketIOServer,
 ): void {
     const worm = worms.get(playerId);
     if (worm && worm.isDead && worm.type === WormType.Player) {
@@ -304,30 +302,32 @@ function removeDeadPlayer(
         // 플레이어 상태 제거
         worms.delete(playerId);
         targetDirections.delete(playerId);
-
-        // 다른 클라이언트들에게 플레이어 떠남 알림
-        io.emit("player-left", playerId);
     }
 }
 
 /**
  * 이전 틱이 끝나고 현재 틱이 시작하기전까지 죽은 지렁이들은 되살리거나 제거한다
+ * @returns 제거된 플레이어 ID 목록
  */
 export function handleKilledWorms(
     worms: Map<string, Worm>,
     targetDirections: Map<string, { x: number; y: number }>,
     botMovementStrategies: Map<string, MovementStrategy>,
-    io: SocketIOServer,
-): void {
+): string[] {
+    const removedPlayerIds: string[] = [];
+
     for (const [wormId, worm] of worms) {
         if (worm.isDead) {
             if (worm.type === WormType.Bot) {
                 respawnBot(wormId, worms, targetDirections, botMovementStrategies);
             } else if (worm.type === WormType.Player) {
-                removeDeadPlayer(wormId, worms, targetDirections, io);
+                removeDeadPlayer(wormId, worms, targetDirections);
+                removedPlayerIds.push(wormId);
             }
         }
     }
+
+    return removedPlayerIds;
 }
 
 function respawnBot(
