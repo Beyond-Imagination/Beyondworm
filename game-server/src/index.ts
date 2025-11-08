@@ -207,17 +207,13 @@ function updateAndBroadcastGameState(
     }
 
     // 3. 맵 경계 초과로 죽은 지렁이들 알림
-    if (mapBoundaryExceedingWorms.length > 0) {
-        for (const wormId of mapBoundaryExceedingWorms) {
-            io.emit("worm-died", { killedWormId: wormId, killerWormId: null });
-        }
+    for (const wormId of mapBoundaryExceedingWorms) {
+        io.emit("worm-died", { killedWormId: wormId, killerWormId: null });
     }
 
     // 4. 지렁이 충돌 알림
-    if (wormCollisions.length > 0) {
-        for (const collision of wormCollisions) {
-            io.emit("worm-died", collision);
-        }
+    for (const collision of wormCollisions) {
+        io.emit("worm-died", collision);
     }
 
     // 5. 봇이 먹이를 먹었다는 알림
