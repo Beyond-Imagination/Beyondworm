@@ -1,4 +1,4 @@
-# bash에서 실행할 것.
+# bash에서 실행할 것. 
 # 로컬에 webhook 컨테이너를 띄웠을 때, github에서 보낸 것 처럼 webhook 컨테이너에게 트리거를 주는 테스트 코드
 # .env-webhook있는 경로에서 실행할 것.
 
