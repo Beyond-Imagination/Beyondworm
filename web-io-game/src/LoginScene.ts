@@ -12,10 +12,7 @@ export default class LoginScene extends Phaser.Scene {
 
     preload() {
         // HTML 폼을 로드합니다.
-        this.load.html(
-            "loginform",
-            `loginform.html`
-        );
+        this.load.html("loginform", `loginform.html`);
     }
 
     create() {
