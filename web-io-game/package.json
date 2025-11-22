@@ -5,8 +5,9 @@
     "main": "src/index.ts",
     "scripts": {
         "prepare": "cd .. && husky install web-io-game/.husky",
-        "start": "ts-node src/index.ts",
-        "build": "tsc",
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview",
         "test": "echo \"No tests specified\" && exit 0",
         "lint": "eslint . && prettier --write ."
     },
