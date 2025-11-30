@@ -528,8 +528,27 @@ export default class GameScene extends Phaser.Scene {
         const currentRadius = headSegment.radius; // 플레이어 기준
         const baseZoom = 1;
         const zoom = baseZoom * (baseRadius / currentRadius);
+        // 카메라 zoom을 브라우저 zoom에 맞게 고정
+        // this.cameras.main.setZoom(1 / window.devicePixelRatio);
+        console.log(
+            this.cameras.main.zoom,
+            " ",
+            zoom,
+            " ",
+            FE_CONSTANTS.CAMERA_ZOOM_LERP_SPEED,
+            " ",
+            window.devicePixelRatio,
+        );
+        // this.cameras.main.setZoom(
+        //     Phaser.Math.Linear(this.cameras.main.zoom, zoom, FE_CONSTANTS.CAMERA_ZOOM_LERP_SPEED),
+        // );
+        // Phaser.Math.Linear(this.cameras.main.zoom, zoom / window.devicePixelRatio, FE_CONSTANTS.CAMERA_ZOOM_LERP_SPEED)
         this.cameras.main.setZoom(
-            Phaser.Math.Linear(this.cameras.main.zoom, zoom, FE_CONSTANTS.CAMERA_ZOOM_LERP_SPEED),
+            Phaser.Math.Linear(
+                this.cameras.main.zoom,
+                zoom / window.devicePixelRatio,
+                FE_CONSTANTS.CAMERA_ZOOM_LERP_SPEED,
+            ),
         );
     }
 
