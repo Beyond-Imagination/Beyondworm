@@ -3,7 +3,6 @@ import { MovementStrategy } from "../types/movement";
 import { getAngleDifference, vectorToAngle, angleToVector } from "../utils/math";
 import { v4 as uuidv4 } from "uuid";
 import { createBotWorm, createMovementStrategy } from "../worm/factory";
-import { Server as SocketIOServer } from "socket.io";
 
 /**
  * 특정 위치에 먹이를 생성합니다.
@@ -18,14 +17,29 @@ export function createFoodAtPosition(x: number, y: number): Food {
     };
 }
 
+export function createRandomPosition(): { x: number; y: number } {
+    const angle = Math.random() * 2 * Math.PI; // 0 ~ 2π
+
+    // Math.sqrt()를 쓰는 이유: 그냥 Math.random() * R를 쓰면 중심보다 바깥쪽에 점이 몰림.
+    // 반지름의 제곱근 분포를 써야 원 안에 고르게 분포된다고 함
+    // 100을 빼는 이유는 지렁이가 선과 가까이 스폰되면 태어나자마자 죽는 억까가 있을수 있고
+    // 먹이가 선과 가까이 스폰되면 먹기 힘들수 있으니 약간의 오프셋을 둠
+    const radius = Math.sqrt(Math.random()) * (GAME_CONSTANTS.MAP_RADIUS - GAME_CONSTANTS.MAP_BOUNDARY_OFFSET);
+
+    // 중심점 (반지름,반지름) 에서 radius만큼 떨어져 있으며 그 방향은 angle에 의해 구해짐
+    return {
+        x: GAME_CONSTANTS.MAP_RADIUS + radius * Math.cos(angle),
+        y: GAME_CONSTANTS.MAP_RADIUS + radius * Math.sin(angle),
+    };
+}
+
 /**
  * 랜덤 먹이를 생성합니다.
  */
 export function createRandomFood(): Food {
-    return createFoodAtPosition(
-        Math.random() * (GAME_CONSTANTS.MAP_WIDTH - 200) + 100,
-        Math.random() * (GAME_CONSTANTS.MAP_HEIGHT - 200) + 100,
-    );
+    const position = createRandomPosition();
+
+    return createFoodAtPosition(position.x, position.y);
 }
 
 /**
@@ -39,7 +53,11 @@ export function updateFoods(foods: Map<string, Food>): void {
 }
 
 function updateWormRadius(worm: Worm): void {
-    worm.radius = worm.score * GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS + GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS;
+    // 지렁이가 커질수록 다음 성장을 위해 필요한 점수가 점차 증가해서
+    // 성장이 처음엔 빠르다가 점차 느려진다
+    worm.radius =
+        GAME_CONSTANTS.SEGMENT_GROWTH_RADIUS * Math.pow(worm.score, GAME_CONSTANTS.SEGMENT_GROWTH_EXPONENT) +
+        GAME_CONSTANTS.SEGMENT_DEFAULT_RADIUS;
 }
 
 /**
@@ -276,7 +294,6 @@ function removeDeadPlayer(
     playerId: string,
     worms: Map<string, Worm>,
     targetDirections: Map<string, { x: number; y: number }>,
-    io: SocketIOServer,
 ): void {
     const worm = worms.get(playerId);
     if (worm && worm.isDead && worm.type === WormType.Player) {
@@ -285,30 +302,32 @@ function removeDeadPlayer(
         // 플레이어 상태 제거
         worms.delete(playerId);
         targetDirections.delete(playerId);
-
-        // 다른 클라이언트들에게 플레이어 떠남 알림
-        io.emit("player-left", playerId);
     }
 }
 
 /**
  * 이전 틱이 끝나고 현재 틱이 시작하기전까지 죽은 지렁이들은 되살리거나 제거한다
+ * @returns 제거된 플레이어 ID 목록
  */
 export function handleKilledWorms(
     worms: Map<string, Worm>,
     targetDirections: Map<string, { x: number; y: number }>,
     botMovementStrategies: Map<string, MovementStrategy>,
-    io: SocketIOServer,
-): void {
+): string[] {
+    const removedPlayerIds: string[] = [];
+
     for (const [wormId, worm] of worms) {
         if (worm.isDead) {
             if (worm.type === WormType.Bot) {
                 respawnBot(wormId, worms, targetDirections, botMovementStrategies);
             } else if (worm.type === WormType.Player) {
-                removeDeadPlayer(wormId, worms, targetDirections, io);
+                removeDeadPlayer(wormId, worms, targetDirections);
+                removedPlayerIds.push(wormId);
             }
         }
     }
+
+    return removedPlayerIds;
 }
 
 function respawnBot(
@@ -497,4 +516,25 @@ export function dropFoodOnDeath(worm: Worm, foods: Map<string, Food>): void {
     }
 
     console.log(`💀 Death food drop: Worm ${worm.id} dropped about ${foodCount} foods`);
+}
+
+export function handleMapBoundaryExceedingWorms(worms: Map<string, Worm>, foods: Map<string, Food>): string[] {
+    const allWorms = Array.from(worms.values());
+    const killedWormIds: string[] = [];
+
+    for (const worm of allWorms) {
+        // 맵 경계 체크: 머리가 맵 밖으로 나가면 사망
+        if (worm.isDead) continue;
+
+        const head = worm.segments[0];
+        const isOutOfBounds =
+            Math.hypot(head.x - GAME_CONSTANTS.MAP_RADIUS, head.y - GAME_CONSTANTS.MAP_RADIUS) > // 머리 중심 좌표와 맵 중심 좌표 사이 거리
+            GAME_CONSTANTS.MAP_RADIUS - worm.radius + GAME_CONSTANTS.MAP_BOUNDARY_DEAD_OFFSET; // 맵 반지름 - 지렁이 반지름에서 약간의 오프셋을 준걸 넘으면 죽음처리
+        if (isOutOfBounds) {
+            killedWormIds.push(worm.id);
+            killWorm(worm, foods);
+        }
+    }
+
+    return killedWormIds;
 }

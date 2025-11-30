@@ -14,6 +14,9 @@ jobs:
       pages: write
       id-token: write
 
+    environment:
+      name: github-pages
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,14 +26,23 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install dependencies
+      # shared 먼저
+      - name: Install project dependencies
+        run: npm ci
+        working-directory: shared
+
+      - name: Build shared
+        run: npm run build
+        working-directory: shared
+
+      - name: Install client dependencies
         run: npm ci
         working-directory: web-io-game
 
       - name: Build client
         run: npm run build
         working-directory: web-io-game
-
+        
       - name: Setup Pages
         uses: actions/configure-pages@v4
 

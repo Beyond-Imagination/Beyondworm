@@ -5,6 +5,7 @@ import GameClient from "./GameClient";
 import { Food, GAME_CONSTANTS, Worm } from "@beyondworm/shared";
 import FoodUI from "./FoodUI";
 import bgPatternURL from "/background.jpeg?url";
+import { RankingData } from "@beyondworm/shared";
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -36,16 +37,42 @@ export default class GameScene extends Phaser.Scene {
     }
 
     create() {
+        // 확장된 크기는 정사각형의 크기를 가진다
+        const extendedMapSize = (GAME_CONSTANTS.MAP_RADIUS + FE_CONSTANTS.CAMERA_PADDING) * 2;
+
         // 화면 크기에 맞는 배경 타일 스프라이트 추가 (효율적인 방식)
         this.backgroundTileSprite = this.add.tileSprite(
-            GAME_CONSTANTS.MAP_WIDTH / 2,
-            GAME_CONSTANTS.MAP_HEIGHT / 2,
-            GAME_CONSTANTS.MAP_WIDTH,
-            GAME_CONSTANTS.MAP_HEIGHT,
+            GAME_CONSTANTS.MAP_RADIUS,
+            GAME_CONSTANTS.MAP_RADIUS,
+            extendedMapSize,
+            extendedMapSize,
             "background_pattern",
         );
         this.backgroundTileSprite.setOrigin(0.5, 0.5); // 화면 중앙에 배치하기 위해 원점 설정
         this.backgroundTileSprite.setDepth(GameScene.BACKGROUND_DEPTH); // 다른 모든 게임 요소보다 뒤에 있도록 설정
+
+        // (A) 빨간 가림막(플레이어 위치에 상관없이 맵에 고정됨)
+        const cover = this.add.graphics().setScrollFactor(1).setDepth(FE_CONSTANTS.ZORDER_MAP_END_ELEMENT);
+        cover
+            .fillStyle(FE_CONSTANTS.BOUNDARY_COLOR, FE_CONSTANTS.BOUNDARY_TRANSPARENCY)
+            .fillRect(-FE_CONSTANTS.CAMERA_PADDING, -FE_CONSTANTS.CAMERA_PADDING, extendedMapSize, extendedMapSize);
+
+        // (B) 마스크로 쓸 원(플레이어 위치에 상관없이 맵에 고정됨)
+        const maskGfx = this.add
+            .graphics()
+            .setScrollFactor(1)
+            .setDepth(FE_CONSTANTS.ZORDER_MAP_END_ELEMENT + 1);
+        maskGfx.fillStyle(0xffffff, 1);
+        maskGfx.fillCircle(0, 0, GAME_CONSTANTS.MAP_RADIUS);
+        maskGfx.visible = false; // 마스크 도형 자체는 보이지 않게
+
+        // GeometryMask 생성 + 반전: 원 안만 투명(=구멍)
+        const mask = new Phaser.Display.Masks.GeometryMask(this, maskGfx);
+        mask.invertAlpha = true;
+        cover.setMask(mask);
+
+        maskGfx.x = GAME_CONSTANTS.MAP_RADIUS;
+        maskGfx.y = GAME_CONSTANTS.MAP_RADIUS;
 
         // 트랜지션 효과를 위해 시작 시 투명하게 설정
         this.cameras.main.setAlpha(0);
@@ -357,8 +384,9 @@ export default class GameScene extends Phaser.Scene {
     /**
      * 서버에서 지렁이가 죽었을 때 처리
      */
-    public handleWormDiedFromServer(data: { killedWormId: string; killerWormId: string }) {
-        console.log(`💀 Worm died: ${data.killedWormId} killed by ${data.killerWormId}`);
+    public handleWormDiedFromServer(data: { killedWormId: string; killerWormId: string | null }) {
+        if (data.killerWormId) console.log(`💀 Worm died: ${data.killedWormId} killed by ${data.killerWormId}`);
+        else console.log(`💀 Worm died: ${data.killedWormId} naturally`); // 자연사
 
         // 죽은 지렁이가 내 플레이어인 경우 카메라 설정을 일시적으로 해제할 수 있음
         if (data.killedWormId === this.playerId) {
@@ -447,7 +475,7 @@ export default class GameScene extends Phaser.Scene {
      */
     private InitializePlayer() {
         // camera setting
-        this.setupCamera(this.playerState.segments[0], GAME_CONSTANTS.MAP_WIDTH, GAME_CONSTANTS.MAP_HEIGHT);
+        this.setupCamera(this.playerState.segments[0], GAME_CONSTANTS.MAP_RADIUS * 2, GAME_CONSTANTS.MAP_RADIUS * 2);
     }
 
     /**
@@ -457,7 +485,12 @@ export default class GameScene extends Phaser.Scene {
      * @param height 카메라 bounds의 높이 (예: 맵 높이)
      */
     private setupCamera(target: Phaser.GameObjects.GameObject, width: number, height: number) {
-        this.cameras.main.setBounds(0, 0, width, height);
+        this.cameras.main.setBounds(
+            -FE_CONSTANTS.CAMERA_PADDING,
+            -FE_CONSTANTS.CAMERA_PADDING,
+            width + FE_CONSTANTS.CAMERA_PADDING * 2,
+            height + FE_CONSTANTS.CAMERA_PADDING * 2,
+        );
         this.cameras.main.startFollow(
             target,
             true,
@@ -528,6 +561,16 @@ export default class GameScene extends Phaser.Scene {
         // DeathScene을 오버레이로 시작 (GameScene은 계속 실행됨)
         if (!this.scene.isActive("DeathScene")) {
             this.scene.launch("DeathScene");
+        }
+    }
+
+    /**
+     * 서버로부터 받은 랭킹 데이터를 UIScene으로 전달합니다.
+     */
+    public updateRankingData(rankingData: RankingData) {
+        const uiScene = this.scene.get("UIScene") as import("./UIScene").default;
+        if (uiScene) {
+            uiScene.updateRanking(rankingData);
         }
     }
 }

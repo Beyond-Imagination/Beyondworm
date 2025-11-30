@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import express from "express";
 import { createServer, Server } from "node:http";
 import { Server as SocketIOServer } from "socket.io";
-import { GAME_CONSTANTS, Worm, BotType, Food, WormType } from "@beyondworm/shared";
+import { GAME_CONSTANTS, Worm, BotType, Food, WormType, RankingData, RankingEntry } from "@beyondworm/shared";
 import { MovementStrategy } from "./types/movement";
 import { createBotWorm, createMovementStrategy } from "./worm/factory";
 import {
@@ -12,6 +12,7 @@ import {
     handleWormCollisions,
     handleSprintFoodDrop,
     handleKilledWorms,
+    handleMapBoundaryExceedingWorms,
 } from "./game/engine";
 import { setupSocketHandlers } from "./socket/handlers";
 import { registerWithLobby } from "./lobby/lobbyApi";
@@ -54,13 +55,15 @@ function createSocketIOServer(httpServer: Server): SocketIOServer {
 
 /**
  * 봇들을 초기화합니다.
+ * @returns 생성된 봇 목록
  */
 function initializeBots(
     worms: Map<string, Worm>,
     targetDirections: Map<string, { x: number; y: number }>,
     botMovementStrategies: Map<string, MovementStrategy>,
-    io: SocketIOServer,
-): void {
+): Worm[] {
+    const createdBots: Worm[] = [];
+
     for (let i = 0; i < GAME_CONSTANTS.BOT_COUNT; i++) {
         const botTypeCount = Object.keys(BotType).length / 2;
         const botType = Math.floor(Math.random() * botTypeCount) as BotType;
@@ -70,10 +73,10 @@ function initializeBots(
         targetDirections.set(bot.id, { x: bot.direction.x, y: bot.direction.y });
         botMovementStrategies.set(bot.id, createMovementStrategy(botType));
 
-        io.emit("player-joined", {
-            worm: bot,
-        });
+        createdBots.push(bot);
     }
+
+    return createdBots;
 }
 
 /**
@@ -105,14 +108,14 @@ function removeAllBots(
 
 /**
  * 플레이어가 있는지 확인하고 필요에 따라 봇을 관리합니다.
+ * @returns 새로 생성된 봇 목록
  */
 function manageBots(
     worms: Map<string, Worm>,
     targetDirections: Map<string, { x: number; y: number }>,
     botMovementStrategies: Map<string, MovementStrategy>,
-    io: SocketIOServer,
-): void {
-    const playerCount = io.engine.clientsCount;
+    playerCount: number,
+): Worm[] {
     let botCount = 0;
     for (const worm of worms.values()) {
         if (worm.type === WormType.Bot) {
@@ -125,11 +128,34 @@ function manageBots(
         if (botCount > 0) {
             removeAllBots(worms, targetDirections, botMovementStrategies);
         }
+        return [];
     } else if (botCount === 0) {
         // 플레이어가 있는데 봇이 없으면 봇 생성
         console.log(`🤖 Creating bots - ${playerCount} players online`);
-        initializeBots(worms, targetDirections, botMovementStrategies, io);
+        return initializeBots(worms, targetDirections, botMovementStrategies);
     }
+
+    return [];
+}
+
+/**
+ * 현재 지렁이들의 랭킹을 계산합니다.
+ */
+function calculateRankings(worms: Map<string, Worm>): RankingData {
+    // 살아있는 지렁이들만 필터링하고 점수 순으로 정렬
+    const aliveWorms = Array.from(worms.values())
+        .filter((worm) => !worm.isDead)
+        .sort((a, b) => b.score - a.score);
+
+    // TOP 10만 선택하고 랭킹 데이터 생성
+    const rankings: RankingEntry[] = aliveWorms.slice(0, 10).map((worm, index) => ({
+        id: worm.id,
+        nickname: worm.nickname,
+        score: worm.score,
+        rank: index + 1,
+    }));
+
+    return { rankings };
 }
 
 /**
@@ -143,14 +169,14 @@ function updateAndBroadcastGameState(
     targetDirections: Map<string, { x: number; y: number }>,
     botMovementStrategies: Map<string, MovementStrategy>,
 ): void {
-    // 봇 관리 (주기적으로 체크)
-    manageBots(worms, targetDirections, botMovementStrategies, io);
+    // 봇 관리 (주기적으로 체크) - 새로 생성된 봇들 수집
+    const newlyCreatedBots = manageBots(worms, targetDirections, botMovementStrategies, io.engine.clientsCount);
 
     // 먹이 업데이트 (부족한 먹이 추가)
     updateFoods(foods);
 
-    // 부활 처리
-    handleKilledWorms(worms, targetDirections, botMovementStrategies, io);
+    // 부활 처리 및 제거된 플레이어 수집
+    const removedPlayerIds = handleKilledWorms(worms, targetDirections, botMovementStrategies);
 
     // 스프린트 중 먹이 떨어뜨리기 처리
     handleSprintFoodDrop(worms, foods, deltaTime);
@@ -158,28 +184,48 @@ function updateAndBroadcastGameState(
     // 지렁이 상태 업데이트
     updateWorld(deltaTime, worms, foods, targetDirections, botMovementStrategies);
 
+    // 맵 경계 초과 지렁이 처리
+    const mapBoundaryExceedingWorms = handleMapBoundaryExceedingWorms(worms, foods);
+
     // 서버에서 직접 모든 지렁이 간의 충돌 감지 및 처리
     const wormCollisions = handleWormCollisions(worms, foods);
-
-    // 지렁이 충돌이 발생했다면 클라이언트들에게 알림
-    if (wormCollisions.length > 0) {
-        for (const collision of wormCollisions) {
-            io.emit("worm-died", collision);
-        }
-    }
 
     // 봇들의 먹이 충돌 처리 (봇은 리포트할 수 없으므로 서버에서 직접 처리)
     const botCollisions = handleBotFoodCollisions(worms, foods);
 
-    // 봇이 먹이를 먹었다면 클라이언트들에게 알림
+    // 랭킹 계산
+    const rankingData = calculateRankings(worms);
+
+    // 1. 새로 생성된 봇들 알림
+    for (const bot of newlyCreatedBots) {
+        io.emit("player-joined", { worm: bot });
+    }
+
+    // 2. 제거된 플레이어들에 대한 알림
+    for (const playerId of removedPlayerIds) {
+        io.emit("player-left", playerId);
+    }
+
+    // 3. 맵 경계 초과로 죽은 지렁이들 알림
+    for (const wormId of mapBoundaryExceedingWorms) {
+        io.emit("worm-died", { killedWormId: wormId, killerWormId: null });
+    }
+
+    // 4. 지렁이 충돌 알림
+    for (const collision of wormCollisions) {
+        io.emit("worm-died", collision);
+    }
+
+    // 5. 봇이 먹이를 먹었다는 알림
     if (botCollisions.length > 0) {
         io.emit("food-eaten", botCollisions);
     }
 
-    // 클라이언트에게 게임 상태 전송
+    // 6. 게임 상태와 랭킹 전송
     io.emit("state-update", {
         worms: Array.from(worms.values()),
         foods: Array.from(foods.values()),
+        ranking: rankingData,
     });
 }
 
