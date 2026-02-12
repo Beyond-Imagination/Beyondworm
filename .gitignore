@@ -24,3 +24,6 @@ Thumbs.db
 
 # 테스트 커버리지
 coverage/
+
+# 코드 어시스트 파일
+CLAUDE.md
