@@ -1,49 +1,153 @@
-<div
-    style="
-        background-color: rgba(0, 0, 0, 0.5);
-        padding: 40px;
-        border-radius: 10px;
+<style>
+    .lobby-shell {
+        width: min(92vw, 520px);
+        padding: 34px 32px 30px;
+        border-radius: 24px;
+        border: 1px solid rgba(78, 127, 198, 0.35);
+        background: rgba(0, 15, 40, 0.88);
+        box-shadow:
+            0 20px 60px rgba(0, 0, 0, 0.55),
+            0 0 30px rgba(0, 255, 136, 0.1);
+        backdrop-filter: blur(8px);
+        font-family: "Trebuchet MS", Arial, sans-serif;
+        color: #d8e9ff;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        gap: 20px;
-    "
->
-    <h1 style="color: white; font-size: 32px; margin: 0 0 10px 0">BeyondWorm</h1>
-    <input
-        type="text"
-        id="username-input"
-        placeholder="Enter your ID"
-        style="padding: 10px; font-size: 16px; width: 250px; border-radius: 5px; border: none"
-    />
+        gap: 18px;
+    }
 
-    <div id="server-list-container" style="width: 300px; color: white">
-        <h2 style="font-size: 20px; margin-bottom: 10px">Server List</h2>
-        <ul
-            id="server-list"
-            style="
-                list-style: none;
-                padding: 0;
-                height: 150px;
-                overflow-y: auto;
-                border: 1px solid #555;
-                border-radius: 5px;
-            "
-        ></ul>
+    .lobby-title {
+        margin: 0;
+        font-size: clamp(34px, 6vw, 54px);
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-align: center;
+        color: #00ff88;
+        text-shadow: 0 0 26px rgba(0, 255, 136, 0.38);
+    }
+
+    .lobby-subtitle {
+        margin: -6px 0 8px;
+        text-align: center;
+        font-size: 12px;
+        letter-spacing: 0.22em;
+        color: rgba(132, 180, 255, 0.8);
+    }
+
+    .lobby-label {
+        margin: 0 0 8px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        color: rgba(132, 180, 255, 0.85);
+    }
+
+    #username-input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 12px 14px;
+        border: 1px solid rgba(78, 127, 198, 0.45);
+        border-radius: 12px;
+        outline: none;
+        font-size: 16px;
+        color: #e8f3ff;
+        background: rgba(7, 21, 42, 0.95);
+    }
+
+    #username-input:focus {
+        border-color: rgba(0, 255, 136, 0.75);
+        box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.16);
+    }
+
+    #server-list-container {
+        margin-top: 2px;
+    }
+
+    #server-list {
+        margin: 0;
+        padding: 8px;
+        list-style: none;
+        max-height: 182px;
+        overflow-y: auto;
+        border-radius: 14px;
+        border: 1px solid rgba(78, 127, 198, 0.4);
+        background: rgba(7, 21, 42, 0.72);
+    }
+
+    .server-item {
+        padding: 11px 12px;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        color: #c7dcff;
+        font-size: 14px;
+        cursor: pointer;
+        transition: 120ms ease;
+    }
+
+    .server-item + .server-item {
+        margin-top: 6px;
+    }
+
+    .server-item:hover {
+        background: rgba(78, 127, 198, 0.18);
+        border-color: rgba(78, 127, 198, 0.42);
+    }
+
+    .server-item.selected {
+        background: rgba(0, 255, 136, 0.16);
+        border-color: rgba(0, 255, 136, 0.62);
+        color: #00ff88;
+    }
+
+    .server-empty {
+        padding: 10px 12px;
+        color: #8ea8cf;
+        font-size: 14px;
+    }
+
+    .server-error {
+        color: #ff7f93;
+    }
+
+    #start-button {
+        margin-top: 8px;
+        width: 100%;
+        padding: 14px 16px;
+        border-radius: 14px;
+        border: 2px solid rgba(0, 255, 136, 0.58);
+        background: rgba(0, 255, 136, 0.14);
+        color: #00ff88;
+        font-size: 17px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        cursor: pointer;
+        transition: 130ms ease;
+    }
+
+    #start-button:hover {
+        transform: translateY(-1px);
+        background: rgba(0, 255, 136, 0.22);
+        box-shadow: 0 10px 26px rgba(0, 255, 136, 0.16);
+    }
+
+    #start-button:active {
+        transform: translateY(0);
+    }
+</style>
+
+<div class="lobby-shell">
+    <h1 class="lobby-title">BEYOND WORM</h1>
+    <p class="lobby-subtitle">EAT . GROW . SURVIVE</p>
+
+    <div>
+        <p class="lobby-label">플레이어 닉네임</p>
+        <input type="text" id="username-input" placeholder="Enter your ID" />
     </div>
 
-    <button
-        id="start-button"
-        style="
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-        "
-    >
-        Start Game
-    </button>
+    <div id="server-list-container">
+        <p class="lobby-label">SERVER LIST</p>
+        <ul id="server-list"></ul>
+    </div>
+
+    <button id="start-button">PLAY</button>
 </div>

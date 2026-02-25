@@ -5,6 +5,7 @@ const lobbyServerUrl: string = import.meta.env.VITE_LOBBY_SERVER_URL;
 
 export default class LoginScene extends Phaser.Scene {
     private selectedServer: GameServer | null = null;
+    private backdrop?: Phaser.GameObjects.Graphics;
 
     constructor() {
         super({ key: "LoginScene" });
@@ -18,8 +19,11 @@ export default class LoginScene extends Phaser.Scene {
     create() {
         const screenCenterX = this.cameras.main.width / 2;
         const screenCenterY = this.cameras.main.height / 2;
+        this.cameras.main.setBackgroundColor("#060d1a");
+        this.drawBackdrop();
 
         const loginDom = this.add.dom(screenCenterX, screenCenterY).createFromCache("loginform");
+        loginDom.setDepth(100);
 
         // 폼 요소에 대한 이벤트 리스너 설정
         const usernameInput = loginDom.getChildByID("username-input") as HTMLInputElement;
@@ -62,6 +66,36 @@ export default class LoginScene extends Phaser.Scene {
 
         // 서버 목록 가져오기 및 UI 업데이트
         this.fetchAndDisplayServers(serverListElement);
+
+        this.scale.on("resize", (gameSize: Phaser.Structs.Size) => {
+            loginDom.setPosition(gameSize.width / 2, gameSize.height / 2);
+            this.drawBackdrop(gameSize.width, gameSize.height);
+        });
+    }
+
+    private drawBackdrop(width: number = this.cameras.main.width, height: number = this.cameras.main.height) {
+        const w = width;
+        const h = height;
+        const centerX = w * 0.5;
+        const centerY = h * 0.5;
+
+        this.backdrop?.destroy();
+        const background = this.add.graphics().setDepth(0);
+        this.backdrop = background;
+        background.fillStyle(0x060d1a, 1);
+        background.fillRect(0, 0, w, h);
+
+        background.fillStyle(0x0b1b33, 0.45);
+        background.fillCircle(centerX, centerY, Math.max(w, h) * 0.45);
+
+        background.lineStyle(1, 0x33557f, 0.22);
+        const grid = 52;
+        for (let x = 0; x <= w; x += grid) {
+            background.lineBetween(x, 0, x, h);
+        }
+        for (let y = 0; y <= h; y += grid) {
+            background.lineBetween(0, y, w, y);
+        }
     }
 
     private async fetchAndDisplayServers(serverListElement: HTMLUListElement) {
@@ -75,12 +109,11 @@ export default class LoginScene extends Phaser.Scene {
             if (serverMap.size > 0) {
                 this.updateServerListUI(serverMap, serverListElement);
             } else {
-                serverListElement.innerHTML = '<li style="padding: 10px;">실행 중인 서버가 없습니다.</li>';
+                serverListElement.innerHTML = '<li class="server-empty">No active servers right now.</li>';
             }
         } catch (error) {
             console.error("Failed to fetch server list:", error);
-            serverListElement.innerHTML =
-                '<li style="padding: 10px; color: #ff5555;">서버 목록을 불러오는데 실패했습니다.</li>';
+            serverListElement.innerHTML = '<li class="server-empty server-error">Failed to load server list.</li>';
         }
     }
 
@@ -89,16 +122,16 @@ export default class LoginScene extends Phaser.Scene {
 
         serverMap.forEach((server, name) => {
             const listItem = document.createElement("li");
-            listItem.innerHTML = `<span>${name} - ${server.playerCount}명 접속 중</span>`;
-            listItem.style.cssText = "padding: 10px; border-bottom: 1px solid #444; cursor: pointer;";
+            listItem.className = "server-item";
+            listItem.textContent = `${name}  •  ${server.playerCount} online`;
 
             listItem.addEventListener("click", () => {
                 this.selectedServer = server;
                 // 선택된 항목 강조
                 serverListElement.querySelectorAll("li").forEach((li) => {
-                    (li as HTMLElement).style.backgroundColor = "transparent";
+                    li.classList.remove("selected");
                 });
-                listItem.style.backgroundColor = "#007bff";
+                listItem.classList.add("selected");
             });
             serverListElement.appendChild(listItem);
         });

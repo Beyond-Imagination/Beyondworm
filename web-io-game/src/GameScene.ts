@@ -4,7 +4,6 @@ import { WormState } from "./WormState";
 import GameClient from "./GameClient";
 import { Food, GAME_CONSTANTS, Worm } from "@beyondworm/shared";
 import FoodUI from "./FoodUI";
-import bgPatternURL from "/background.jpeg?url";
 import { RankingData } from "@beyondworm/shared";
 
 export default class GameScene extends Phaser.Scene {
@@ -26,30 +25,44 @@ export default class GameScene extends Phaser.Scene {
     private wormHeadsGroup!: Phaser.Physics.Arcade.Group;
     private wormBodiesGroup!: Phaser.Physics.Arcade.Group;
     private foodsGroup!: Phaser.Physics.Arcade.Group;
-    private backgroundTileSprite!: Phaser.GameObjects.TileSprite;
+    private backgroundGridSprite!: Phaser.GameObjects.TileSprite;
 
-    private static readonly BACKGROUND_KEY = "background_pattern";
+    private static readonly BACKGROUND_GRID_KEY = "background_grid";
     private static readonly BACKGROUND_DEPTH = -10;
 
     preload() {
-        // 에셋(이미지, 사운드 등) 로드
-        this.load.image(GameScene.BACKGROUND_KEY, bgPatternURL);
+        // 배경은 런타임 그래픽 텍스처를 사용
     }
 
     create() {
         // 확장된 크기는 정사각형의 크기를 가진다
         const extendedMapSize = (GAME_CONSTANTS.MAP_RADIUS + FE_CONSTANTS.CAMERA_PADDING) * 2;
+        const mapCenter = GAME_CONSTANTS.MAP_RADIUS;
 
-        // 화면 크기에 맞는 배경 타일 스프라이트 추가 (효율적인 방식)
-        this.backgroundTileSprite = this.add.tileSprite(
-            GAME_CONSTANTS.MAP_RADIUS,
-            GAME_CONSTANTS.MAP_RADIUS,
+        // targetFE 톤에 맞춘 배경 레이어(딥 네이비 + 그리드 + 은은한 텍스처)
+        this.createBackgroundGridTexture();
+
+        const baseBackground = this.add.graphics().setDepth(GameScene.BACKGROUND_DEPTH - 2);
+        baseBackground
+            .fillStyle(0x060d1a, 1)
+            .fillRect(-FE_CONSTANTS.CAMERA_PADDING, -FE_CONSTANTS.CAMERA_PADDING, extendedMapSize, extendedMapSize);
+
+        this.backgroundGridSprite = this.add.tileSprite(
+            mapCenter,
+            mapCenter,
             extendedMapSize,
             extendedMapSize,
-            "background_pattern",
+            GameScene.BACKGROUND_GRID_KEY,
         );
-        this.backgroundTileSprite.setOrigin(0.5, 0.5); // 화면 중앙에 배치하기 위해 원점 설정
-        this.backgroundTileSprite.setDepth(GameScene.BACKGROUND_DEPTH); // 다른 모든 게임 요소보다 뒤에 있도록 설정
+        this.backgroundGridSprite.setOrigin(0.5, 0.5);
+        this.backgroundGridSprite.setDepth(GameScene.BACKGROUND_DEPTH);
+        this.backgroundGridSprite.setAlpha(0.9);
+
+        const mapBorder = this.add.graphics().setDepth(FE_CONSTANTS.ZORDER_SEGMENT - 200);
+        mapBorder.lineStyle(7, 0xff3350, 0.38);
+        mapBorder.strokeCircle(mapCenter, mapCenter, GAME_CONSTANTS.MAP_RADIUS);
+        mapBorder.lineStyle(2, 0x4f7dbf, 0.36);
+        mapBorder.strokeCircle(mapCenter, mapCenter, GAME_CONSTANTS.MAP_RADIUS - 8);
 
         // (A) 빨간 가림막(플레이어 위치에 상관없이 맵에 고정됨)
         const cover = this.add.graphics().setScrollFactor(1).setDepth(FE_CONSTANTS.ZORDER_MAP_END_ELEMENT);
@@ -71,8 +84,8 @@ export default class GameScene extends Phaser.Scene {
         mask.invertAlpha = true;
         cover.setMask(mask);
 
-        maskGfx.x = GAME_CONSTANTS.MAP_RADIUS;
-        maskGfx.y = GAME_CONSTANTS.MAP_RADIUS;
+        maskGfx.x = mapCenter;
+        maskGfx.y = mapCenter;
 
         // 트랜지션 효과를 위해 시작 시 투명하게 설정
         this.cameras.main.setAlpha(0);
@@ -116,6 +129,26 @@ export default class GameScene extends Phaser.Scene {
         this.input.keyboard.on("keyup-SPACE", () => {
             this.gameClient.stopSprint();
         });
+    }
+
+    private createBackgroundGridTexture() {
+        if (this.textures.exists(GameScene.BACKGROUND_GRID_KEY)) return;
+
+        const gridSize = 60;
+        const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+        graphics.fillStyle(0x060d1a, 0.95);
+        graphics.fillRect(0, 0, gridSize, gridSize);
+
+        graphics.lineStyle(1, 0x325078, 0.2);
+        graphics.lineBetween(gridSize - 1, 0, gridSize - 1, gridSize);
+        graphics.lineBetween(0, gridSize - 1, gridSize, gridSize - 1);
+
+        graphics.lineStyle(1, 0x213551, 0.18);
+        graphics.lineBetween(Math.floor(gridSize / 2), 0, Math.floor(gridSize / 2), gridSize);
+        graphics.lineBetween(0, Math.floor(gridSize / 2), gridSize, Math.floor(gridSize / 2));
+
+        graphics.generateTexture(GameScene.BACKGROUND_GRID_KEY, gridSize, gridSize);
+        graphics.destroy();
     }
 
     /**
@@ -339,7 +372,8 @@ export default class GameScene extends Phaser.Scene {
             if (serverFoodIds.has(foodId)) {
                 return true; // 유지
             } else {
-                this.foodsGroup.remove(clientFood.sprite, true, true); // 제거
+                this.foodsGroup.remove(clientFood.sprite, false, false);
+                clientFood.destroy();
                 return false;
             }
         });
@@ -400,7 +434,8 @@ export default class GameScene extends Phaser.Scene {
      */
     private clearAllFoods() {
         for (const food of this.foods) {
-            this.foodsGroup.remove(food.sprite, true, true);
+            this.foodsGroup.remove(food.sprite, false, false);
+            food.destroy();
         }
         this.foods = [];
         this.serverFoods.clear();
@@ -504,8 +539,8 @@ export default class GameScene extends Phaser.Scene {
         const food = this.foods.find((f) => f.sprite === foodSprite);
         if (!food) return; // 먹이를 찾지 못하면 종료
 
+        this.foodsGroup.remove(food.sprite, false, false);
         food.beEaten();
-        this.foodsGroup.remove(food.sprite, true, true); // 그룹에서 제거
 
         this.foods = this.foods.filter((f) => f !== food); // 배열에서 제거
     }
@@ -557,10 +592,15 @@ export default class GameScene extends Phaser.Scene {
      */
     public showDeathScreen() {
         console.log("🎮 Showing death screen");
+        const defaultCount = GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT ?? 0;
+        const segmentCount = this.playerState?.segments?.length ?? defaultCount;
+        const score = Math.max(0, segmentCount - defaultCount);
+        const bestScore = Math.max(score, (this.game.registry.get("bestScore") as number | undefined) ?? 0);
+        this.game.registry.set("bestScore", bestScore);
 
         // DeathScene을 오버레이로 시작 (GameScene은 계속 실행됨)
         if (!this.scene.isActive("DeathScene")) {
-            this.scene.launch("DeathScene");
+            this.scene.launch("DeathScene", { score, bestScore });
         }
     }
 

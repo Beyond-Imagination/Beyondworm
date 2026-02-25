@@ -15,6 +15,9 @@ export class WormState {
     public wormType: WormType;
     public nicknameText: Phaser.GameObjects.Text | null = null;
     private baseFontSize: number = 25; // 기본 폰트 크기
+    private glowSegments: Phaser.GameObjects.Arc[] = [];
+    private eyes: Phaser.GameObjects.Arc[] = [];
+    private pupils: Phaser.GameObjects.Arc[] = [];
 
     // 보간 처리를 위한 데이터
     public interpolationData: SegmentInterpolationData[] = [];
@@ -24,7 +27,107 @@ export class WormState {
         this.segments = segments || [];
         this.isSprinting = false;
         this.wormType = wormType;
+        this.initializeSegmentVisuals();
         this.initializeInterpolationData();
+    }
+
+    private initializeSegmentVisuals() {
+        this.clearSegmentVisuals();
+        for (let i = 0; i < this.segments.length; i++) {
+            this.createSegmentVisual(i);
+        }
+        this.updateSegmentVisuals();
+    }
+
+    private clearSegmentVisuals() {
+        this.glowSegments.forEach((segment) => segment.destroy());
+        this.eyes.forEach((eye) => eye.destroy());
+        this.pupils.forEach((pupil) => pupil.destroy());
+        this.glowSegments = [];
+        this.eyes = [];
+        this.pupils = [];
+    }
+
+    private createSegmentVisual(index: number) {
+        const segment = this.segments[index];
+        const fillColor = segment.fillColor ?? 0x00ff88;
+        const glow = segment.scene.add.circle(segment.x, segment.y, segment.radius * 1.35, fillColor, 0.23);
+        glow.setDepth(segment.depth - 1);
+        this.glowSegments[index] = glow;
+
+        // 코어는 충돌 판정을 유지하는 기존 Arc를 그대로 사용하면서 스타일만 강화
+        segment.setStrokeStyle(3, 0x102035, 0.95);
+
+        if (index === 0) {
+            const eyeLeft = segment.scene.add.circle(segment.x, segment.y, 4, 0xffffff, 1);
+            const eyeRight = segment.scene.add.circle(segment.x, segment.y, 4, 0xffffff, 1);
+            const pupilLeft = segment.scene.add.circle(segment.x, segment.y, 2, 0x0b1020, 1);
+            const pupilRight = segment.scene.add.circle(segment.x, segment.y, 2, 0x0b1020, 1);
+
+            eyeLeft.setDepth(segment.depth + 2);
+            eyeRight.setDepth(segment.depth + 2);
+            pupilLeft.setDepth(segment.depth + 3);
+            pupilRight.setDepth(segment.depth + 3);
+
+            this.eyes = [eyeLeft, eyeRight];
+            this.pupils = [pupilLeft, pupilRight];
+        }
+    }
+
+    private updateSegmentVisuals() {
+        for (let i = 0; i < this.segments.length; i++) {
+            const segment = this.segments[i];
+            const glow = this.glowSegments[i];
+            if (!glow) continue;
+
+            const tailFactor = 1 - i / Math.max(this.segments.length, 1);
+            const stripeAlpha = i % 4 < 2 ? 1 : 0.78;
+
+            glow.setPosition(segment.x, segment.y);
+            glow.setRadius(segment.radius * (1.45 - 0.18 * (1 - tailFactor)));
+            glow.setFillStyle(segment.fillColor ?? 0x00ff88, 0.16 + tailFactor * 0.16);
+
+            segment.setFillStyle(segment.fillColor ?? 0x00ff88, stripeAlpha);
+        }
+
+        this.updateHeadEyes();
+    }
+
+    private updateHeadEyes() {
+        if (this.segments.length === 0 || this.eyes.length !== 2 || this.pupils.length !== 2) {
+            return;
+        }
+
+        const head = this.segments[0];
+        const neck = this.segments[1] ?? this.segments[0];
+        const angle = Math.atan2(head.y - neck.y, head.x - neck.x);
+        const eyeRadius = Math.max(2.8, head.radius * 0.27);
+        const pupilRadius = Math.max(1.4, eyeRadius * 0.5);
+        const eyeDistance = head.radius * 0.54;
+        const pupilForward = pupilRadius * 0.35;
+
+        const eyeOffsetLeft = {
+            x: Math.cos(angle + 0.5) * eyeDistance,
+            y: Math.sin(angle + 0.5) * eyeDistance,
+        };
+        const eyeOffsetRight = {
+            x: Math.cos(angle - 0.5) * eyeDistance,
+            y: Math.sin(angle - 0.5) * eyeDistance,
+        };
+        const pupilOffset = {
+            x: Math.cos(angle) * pupilForward,
+            y: Math.sin(angle) * pupilForward,
+        };
+
+        this.eyes[0].setPosition(head.x + eyeOffsetLeft.x, head.y + eyeOffsetLeft.y).setRadius(eyeRadius);
+        this.eyes[1].setPosition(head.x + eyeOffsetRight.x, head.y + eyeOffsetRight.y).setRadius(eyeRadius);
+
+        this.pupils[0]
+            .setPosition(head.x + eyeOffsetLeft.x + pupilOffset.x, head.y + eyeOffsetLeft.y + pupilOffset.y)
+            .setRadius(pupilRadius);
+        this.pupils[1]
+            .setPosition(head.x + eyeOffsetRight.x + pupilOffset.x, head.y + eyeOffsetRight.y + pupilOffset.y)
+            .setRadius(pupilRadius);
     }
 
     /**
@@ -109,6 +212,7 @@ export class WormState {
                 }
             }
         }
+        this.updateSegmentVisuals();
     }
 
     /**
@@ -129,6 +233,8 @@ export class WormState {
             previousRadius: segment.radius,
             targetRadius: segment.radius,
         });
+        this.createSegmentVisual(this.segments.length - 1);
+        this.updateSegmentVisuals();
     }
 
     /**
@@ -136,7 +242,15 @@ export class WormState {
      */
     public removeLastSegment(): Phaser.GameObjects.Arc | undefined {
         this.interpolationData.pop();
-        return this.segments.pop();
+        const removedGlow = this.glowSegments.pop();
+        removedGlow?.destroy();
+
+        const removedSegment = this.segments.pop();
+        if (this.segments.length === 0) {
+            this.clearSegmentVisuals();
+        }
+        this.updateSegmentVisuals();
+        return removedSegment;
     }
 
     /**
@@ -174,5 +288,6 @@ export class WormState {
             this.nicknameText.destroy();
             this.nicknameText = null;
         }
+        this.clearSegmentVisuals();
     }
 }

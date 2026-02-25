@@ -12,8 +12,8 @@ export const GAME_CONSTANTS = {
     dt: 1 / tickRate, // 각 틱의 시간 (초 단위)
 
     // Worm
-    HEAD_SPEED: 350, // 머리가 마우스를 쫓는 속도(px/s)
-    HEAD_SPRINT_SPEED: 550, // 달리기 속도
+    HEAD_SPEED: 500, // 머리가 마우스를 쫓는 속도(px/s)
+    HEAD_SPRINT_SPEED: 750, // 달리기 속도
     SPRINT_FOOD_DROP_INTERVAL: 500, // 달리기 중 먹이 방출 간격 (ms)
     TURN_RATE: 5.0, // 지렁이 회전 속도 (라디안/초)
 
