@@ -58,7 +58,7 @@ export default class DeathScene extends Phaser.Scene {
             .setStroke("#2a0f18", 4);
 
         const scoreLabel = this.add
-            .text(0, -38, "FINAL SCORE", {
+            .text(0, -38, "최종 점수", {
                 fontFamily: "Trebuchet MS, Arial, sans-serif",
                 fontSize: "16px",
                 color: "#84b4ff",
@@ -77,7 +77,7 @@ export default class DeathScene extends Phaser.Scene {
             .setStroke("#0a1324", 6);
 
         const bestLabel = this.add
-            .text(0, 62, "BEST", {
+            .text(0, 62, "최고 기록", {
                 fontFamily: "Trebuchet MS, Arial, sans-serif",
                 fontSize: "14px",
                 color: "#ffd166",
