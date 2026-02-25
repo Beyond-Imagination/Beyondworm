@@ -418,7 +418,12 @@ export default class GameScene extends Phaser.Scene {
     /**
      * 서버에서 지렁이가 죽었을 때 처리
      */
-    public handleWormDiedFromServer(data: { killedWormId: string; killerWormId: string | null }) {
+    public handleWormDiedFromServer(data: {
+        killedWormId: string;
+        killerWormId: string | null;
+        deathReason?: "map_boundary" | "worm_collision";
+        killerNickname?: string | null;
+    }) {
         if (data.killerWormId) console.log(`💀 Worm died: ${data.killedWormId} killed by ${data.killerWormId}`);
         else console.log(`💀 Worm died: ${data.killedWormId} naturally`); // 자연사
 
@@ -590,7 +595,7 @@ export default class GameScene extends Phaser.Scene {
     /**
      * 플레이어가 죽었을 때 DeathScene을 표시합니다.
      */
-    public showDeathScreen() {
+    public showDeathScreen(reasonMessage?: string) {
         console.log("🎮 Showing death screen");
         const defaultCount = GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT ?? 0;
         const segmentCount = this.playerState?.segments?.length ?? defaultCount;
@@ -600,7 +605,7 @@ export default class GameScene extends Phaser.Scene {
 
         // DeathScene을 오버레이로 시작 (GameScene은 계속 실행됨)
         if (!this.scene.isActive("DeathScene")) {
-            this.scene.launch("DeathScene", { score, bestScore });
+            this.scene.launch("DeathScene", { score, bestScore, reasonMessage });
         }
     }
 

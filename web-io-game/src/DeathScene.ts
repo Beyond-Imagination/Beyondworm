@@ -7,7 +7,7 @@ export default class DeathScene extends Phaser.Scene {
         super({ key: "DeathScene" });
     }
 
-    create(data: { score?: number; bestScore?: number }) {
+    create(data: { score?: number; bestScore?: number; reasonMessage?: string }) {
         this.renderUI(data);
 
         this.scale.on("resize", (gameSize: Phaser.Structs.Size) => {
@@ -17,7 +17,7 @@ export default class DeathScene extends Phaser.Scene {
     }
 
     private renderUI(
-        data: { score?: number; bestScore?: number },
+        data: { score?: number; bestScore?: number; reasonMessage?: string },
         width: number = this.cameras.main.width,
         height: number = this.cameras.main.height,
     ) {
@@ -42,8 +42,19 @@ export default class DeathScene extends Phaser.Scene {
             .setOrigin(0.5)
             .setStroke("#2a0f18", 6);
 
+        const reasonText = this.add
+            .text(0, -82, data.reasonMessage ?? "사망했습니다.", {
+                fontFamily: "Trebuchet MS, Arial, sans-serif",
+                fontSize: "18px",
+                color: "#ffd6dc",
+                align: "center",
+                wordWrap: { width: 360, useAdvancedWrap: true },
+            })
+            .setOrigin(0.5)
+            .setStroke("#2a0f18", 4);
+
         const scoreLabel = this.add
-            .text(0, -54, "FINAL SCORE", {
+            .text(0, -38, "FINAL SCORE", {
                 fontFamily: "Trebuchet MS, Arial, sans-serif",
                 fontSize: "16px",
                 color: "#84b4ff",
@@ -52,7 +63,7 @@ export default class DeathScene extends Phaser.Scene {
             .setOrigin(0.5);
 
         const scoreValue = this.add
-            .text(0, -10, `${data.score ?? 0}`, {
+            .text(0, 4, `${data.score ?? 0}`, {
                 fontFamily: "Trebuchet MS, Arial, sans-serif",
                 fontSize: "64px",
                 color: "#00ff88",
@@ -62,7 +73,7 @@ export default class DeathScene extends Phaser.Scene {
             .setStroke("#0a1324", 6);
 
         const bestLabel = this.add
-            .text(0, 46, "BEST", {
+            .text(0, 62, "BEST", {
                 fontFamily: "Trebuchet MS, Arial, sans-serif",
                 fontSize: "14px",
                 color: "#ffd166",
@@ -71,7 +82,7 @@ export default class DeathScene extends Phaser.Scene {
             .setOrigin(0.5);
 
         const bestValue = this.add
-            .text(0, 72, `${data.bestScore ?? data.score ?? 0}`, {
+            .text(0, 88, `${data.bestScore ?? data.score ?? 0}`, {
                 fontFamily: "Trebuchet MS, Arial, sans-serif",
                 fontSize: "30px",
                 color: "#ffd166",
@@ -83,11 +94,11 @@ export default class DeathScene extends Phaser.Scene {
         const buttonGfx = this.add.graphics();
         buttonGfx.fillStyle(0x00ff88, 0.17);
         buttonGfx.lineStyle(2, 0x00ff88, 0.55);
-        buttonGfx.fillRoundedRect(-110, 108, 220, 58, 18);
-        buttonGfx.strokeRoundedRect(-110, 108, 220, 58, 18);
+        buttonGfx.fillRoundedRect(-110, 118, 220, 58, 18);
+        buttonGfx.strokeRoundedRect(-110, 118, 220, 58, 18);
 
         const playAgainText = this.add
-            .text(0, 136, "PLAY AGAIN", {
+            .text(0, 146, "PLAY AGAIN", {
                 fontFamily: "Trebuchet MS, Arial, sans-serif",
                 fontSize: "24px",
                 color: "#00ff88",
@@ -96,23 +107,23 @@ export default class DeathScene extends Phaser.Scene {
             .setOrigin(0.5);
 
         const buttonHitArea = this.add
-            .rectangle(0, 136, 220, 58, 0x000000, 0.001)
+            .rectangle(0, 146, 220, 58, 0x000000, 0.001)
             .setInteractive({ useHandCursor: true });
 
         buttonHitArea.on("pointerover", () => {
             buttonGfx.clear();
             buttonGfx.fillStyle(0x00ff88, 0.24);
             buttonGfx.lineStyle(2, 0x00ff88, 0.8);
-            buttonGfx.fillRoundedRect(-110, 108, 220, 58, 18);
-            buttonGfx.strokeRoundedRect(-110, 108, 220, 58, 18);
+            buttonGfx.fillRoundedRect(-110, 118, 220, 58, 18);
+            buttonGfx.strokeRoundedRect(-110, 118, 220, 58, 18);
         });
 
         buttonHitArea.on("pointerout", () => {
             buttonGfx.clear();
             buttonGfx.fillStyle(0x00ff88, 0.17);
             buttonGfx.lineStyle(2, 0x00ff88, 0.55);
-            buttonGfx.fillRoundedRect(-110, 108, 220, 58, 18);
-            buttonGfx.strokeRoundedRect(-110, 108, 220, 58, 18);
+            buttonGfx.fillRoundedRect(-110, 118, 220, 58, 18);
+            buttonGfx.strokeRoundedRect(-110, 118, 220, 58, 18);
         });
 
         buttonHitArea.on("pointerdown", () => {
@@ -126,6 +137,7 @@ export default class DeathScene extends Phaser.Scene {
         this.rootContainer = this.add.container(centerX, centerY, [
             panelGfx,
             gameOverText,
+            reasonText,
             scoreLabel,
             scoreValue,
             bestLabel,
