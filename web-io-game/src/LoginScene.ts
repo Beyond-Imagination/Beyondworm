@@ -103,27 +103,26 @@ export default class LoginScene extends Phaser.Scene {
             const response = await fetch(`${lobbyServerUrl}/servers`);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-            const serversJson: Record<string, GameServer> = await response.json();
-            const serverMap = new Map<string, GameServer>(Object.entries(serversJson));
+            const servers = (await response.json()) as GameServer[];
 
-            if (serverMap.size > 0) {
-                this.updateServerListUI(serverMap, serverListElement);
+            if (servers.length > 0) {
+                this.updateServerListUI(servers, serverListElement);
             } else {
-                serverListElement.innerHTML = '<li class="server-empty">No active servers right now.</li>';
+                serverListElement.innerHTML = '<li class="server-empty">현재 접속 가능한 서버가 없습니다.</li>';
             }
         } catch (error) {
             console.error("Failed to fetch server list:", error);
-            serverListElement.innerHTML = '<li class="server-empty server-error">Failed to load server list.</li>';
+            serverListElement.innerHTML = '<li class="server-empty server-error">서버 목록을 불러오지 못했습니다.</li>';
         }
     }
 
-    private updateServerListUI(serverMap: Map<string, GameServer>, serverListElement: HTMLUListElement) {
+    private updateServerListUI(servers: GameServer[], serverListElement: HTMLUListElement) {
         serverListElement.innerHTML = ""; // 기존 목록 삭제
 
-        serverMap.forEach((server, name) => {
+        servers.forEach((server, index) => {
             const listItem = document.createElement("li");
             listItem.className = "server-item";
-            listItem.textContent = `${name}  •  ${server.playerCount} online`;
+            listItem.textContent = `${index + 1}번 서버  ·  현재 ${server.playerCount}명 접속중`;
 
             listItem.addEventListener("click", () => {
                 this.selectedServer = server;
