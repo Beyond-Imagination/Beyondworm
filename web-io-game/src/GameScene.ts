@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { FE_CONSTANTS } from "./constants";
 import { WormState } from "./WormState";
 import GameClient from "./GameClient";
-import { Food, GAME_CONSTANTS, Worm } from "@beyondworm/shared";
+import { Food, GAME_CONSTANTS, Worm, WormDeathData } from "@beyondworm/shared";
 import FoodUI from "./FoodUI";
 import { RankingData } from "@beyondworm/shared";
 
@@ -420,12 +420,7 @@ export default class GameScene extends Phaser.Scene {
     /**
      * 서버에서 지렁이가 죽었을 때 처리
      */
-    public handleWormDiedFromServer(data: {
-        killedWormId: string;
-        killerWormId: string | null;
-        deathReason?: "map_boundary" | "worm_collision";
-        killerNickname?: string | null;
-    }) {
+    public handleWormDiedFromServer(data: WormDeathData) {
         if (data.killerWormId) console.log(`💀 Worm died: ${data.killedWormId} killed by ${data.killerWormId}`);
         else console.log(`💀 Worm died: ${data.killedWormId} naturally`); // 자연사
 

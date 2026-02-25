@@ -16,6 +16,7 @@ import {
 } from "./game/engine";
 import { setupSocketHandlers } from "./socket/handlers";
 import { registerWithLobby } from "./lobby/lobbyApi";
+import { createWormDeathPayload } from "./utils/wormDeath";
 
 dotenv.config(); // .env 로드
 
@@ -208,22 +209,26 @@ function updateAndBroadcastGameState(
 
     // 3. 맵 경계 초과로 죽은 지렁이들 알림
     for (const wormId of mapBoundaryExceedingWorms) {
-        io.emit("worm-died", {
-            killedWormId: wormId,
-            killerWormId: null,
-            deathReason: "map_boundary",
-            killerNickname: null,
-        });
+        io.emit(
+            "worm-died",
+            createWormDeathPayload({
+                killedWormId: wormId,
+                deathReason: "map_boundary",
+            }),
+        );
     }
 
     // 4. 지렁이 충돌 알림
     for (const collision of wormCollisions) {
         const killerWorm = worms.get(collision.killerWormId);
-        io.emit("worm-died", {
-            ...collision,
-            deathReason: "worm_collision",
-            killerNickname: killerWorm?.nickname ?? null,
-        });
+        io.emit(
+            "worm-died",
+            createWormDeathPayload({
+                killedWormId: collision.killedWormId,
+                killerWorm,
+                deathReason: "worm_collision",
+            }),
+        );
     }
 
     // 5. 봇이 먹이를 먹었다는 알림

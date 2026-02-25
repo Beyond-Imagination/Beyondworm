@@ -1,13 +1,6 @@
 import { io, Socket } from "socket.io-client";
 import GameScene from "./GameScene";
-import { Food, GAME_CONSTANTS, Worm, RankingData } from "@beyondworm/shared";
-
-type WormDeathData = {
-    killedWormId: string;
-    killerWormId: string | null;
-    deathReason?: "map_boundary" | "worm_collision";
-    killerNickname?: string | null;
-};
+import { Food, GAME_CONSTANTS, Worm, RankingData, WormDeathData } from "@beyondworm/shared";
 
 export default class GameClient {
     private socket: Socket;

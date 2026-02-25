@@ -71,3 +71,12 @@ export interface GameServer {
     playerCount: number;
     lastSeen: number;
 }
+
+export type WormDeathReason = "map_boundary" | "worm_collision";
+
+export interface WormDeathData {
+    killedWormId: string;
+    killerWormId: string | null;
+    deathReason?: WormDeathReason;
+    killerNickname?: string | null;
+}

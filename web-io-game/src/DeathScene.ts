@@ -3,6 +3,11 @@ import { FE_CONSTANTS } from "./constants";
 
 export default class DeathScene extends Phaser.Scene {
     private rootContainer?: Phaser.GameObjects.Container;
+    private static readonly BUTTON_X = -110;
+    private static readonly BUTTON_Y = 118;
+    private static readonly BUTTON_WIDTH = 220;
+    private static readonly BUTTON_HEIGHT = 58;
+    private static readonly BUTTON_RADIUS = 18;
 
     constructor() {
         super({ key: "DeathScene" });
@@ -103,10 +108,7 @@ export default class DeathScene extends Phaser.Scene {
             .setResolution(FE_CONSTANTS.TEXT_RESOLUTION);
 
         const buttonGfx = this.add.graphics();
-        buttonGfx.fillStyle(0x00ff88, 0.17);
-        buttonGfx.lineStyle(2, 0x00ff88, 0.55);
-        buttonGfx.fillRoundedRect(-110, 118, 220, 58, 18);
-        buttonGfx.strokeRoundedRect(-110, 118, 220, 58, 18);
+        this.drawPlayButton(buttonGfx, "normal");
 
         const playAgainText = this.add
             .text(0, 146, "PLAY AGAIN", {
@@ -123,19 +125,11 @@ export default class DeathScene extends Phaser.Scene {
             .setInteractive({ useHandCursor: true });
 
         buttonHitArea.on("pointerover", () => {
-            buttonGfx.clear();
-            buttonGfx.fillStyle(0x00ff88, 0.24);
-            buttonGfx.lineStyle(2, 0x00ff88, 0.8);
-            buttonGfx.fillRoundedRect(-110, 118, 220, 58, 18);
-            buttonGfx.strokeRoundedRect(-110, 118, 220, 58, 18);
+            this.drawPlayButton(buttonGfx, "hover");
         });
 
         buttonHitArea.on("pointerout", () => {
-            buttonGfx.clear();
-            buttonGfx.fillStyle(0x00ff88, 0.17);
-            buttonGfx.lineStyle(2, 0x00ff88, 0.55);
-            buttonGfx.fillRoundedRect(-110, 118, 220, 58, 18);
-            buttonGfx.strokeRoundedRect(-110, 118, 220, 58, 18);
+            this.drawPlayButton(buttonGfx, "normal");
         });
 
         buttonHitArea.on("pointerdown", () => {
@@ -157,5 +151,28 @@ export default class DeathScene extends Phaser.Scene {
         this.rootContainer.setScrollFactor(0);
         this.rootContainer.setDepth(11000);
         overlay.setDepth(10999);
+    }
+
+    private drawPlayButton(buttonGfx: Phaser.GameObjects.Graphics, state: "normal" | "hover") {
+        const fillAlpha = state === "hover" ? 0.24 : 0.17;
+        const lineAlpha = state === "hover" ? 0.8 : 0.55;
+
+        buttonGfx.clear();
+        buttonGfx.fillStyle(0x00ff88, fillAlpha);
+        buttonGfx.lineStyle(2, 0x00ff88, lineAlpha);
+        buttonGfx.fillRoundedRect(
+            DeathScene.BUTTON_X,
+            DeathScene.BUTTON_Y,
+            DeathScene.BUTTON_WIDTH,
+            DeathScene.BUTTON_HEIGHT,
+            DeathScene.BUTTON_RADIUS,
+        );
+        buttonGfx.strokeRoundedRect(
+            DeathScene.BUTTON_X,
+            DeathScene.BUTTON_Y,
+            DeathScene.BUTTON_WIDTH,
+            DeathScene.BUTTON_HEIGHT,
+            DeathScene.BUTTON_RADIUS,
+        );
     }
 }
