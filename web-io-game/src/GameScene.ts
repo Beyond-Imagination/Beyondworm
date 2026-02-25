@@ -372,7 +372,6 @@ export default class GameScene extends Phaser.Scene {
             if (serverFoodIds.has(foodId)) {
                 return true; // 유지
             } else {
-                this.foodsGroup.remove(clientFood.sprite, false, false);
                 clientFood.destroy();
                 return false;
             }
@@ -439,7 +438,6 @@ export default class GameScene extends Phaser.Scene {
      */
     private clearAllFoods() {
         for (const food of this.foods) {
-            this.foodsGroup.remove(food.sprite, false, false);
             food.destroy();
         }
         this.foods = [];
@@ -544,7 +542,6 @@ export default class GameScene extends Phaser.Scene {
         const food = this.foods.find((f) => f.sprite === foodSprite);
         if (!food) return; // 먹이를 찾지 못하면 종료
 
-        this.foodsGroup.remove(food.sprite, false, false);
         food.beEaten();
 
         this.foods = this.foods.filter((f) => f !== food); // 배열에서 제거
