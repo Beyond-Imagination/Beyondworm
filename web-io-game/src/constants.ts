@@ -21,4 +21,7 @@ export const FE_CONSTANTS = {
         fontFamily: "Trebuchet MS, Arial, sans-serif",
     },
     ZORDER_NICKNAME: 1000,
+
+    // 고해상도 디스플레이에서 텍스트가 번지지 않도록 devicePixelRatio 적용
+    TEXT_RESOLUTION: window.devicePixelRatio || 1,
 };

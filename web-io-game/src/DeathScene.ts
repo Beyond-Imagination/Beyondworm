@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { FE_CONSTANTS } from "./constants";
 
 export default class DeathScene extends Phaser.Scene {
     private rootContainer?: Phaser.GameObjects.Container;
@@ -44,7 +45,8 @@ export default class DeathScene extends Phaser.Scene {
                 fontStyle: "bold",
             })
             .setOrigin(0.5)
-            .setStroke("#2a0f18", 6);
+            .setStroke("#2a0f18", 6)
+            .setResolution(FE_CONSTANTS.TEXT_RESOLUTION);
 
         const reasonText = this.add
             .text(0, -82, data.reasonMessage ?? "사망했습니다.", {
@@ -55,7 +57,8 @@ export default class DeathScene extends Phaser.Scene {
                 wordWrap: { width: 360, useAdvancedWrap: true },
             })
             .setOrigin(0.5)
-            .setStroke("#2a0f18", 4);
+            .setStroke("#2a0f18", 4)
+            .setResolution(FE_CONSTANTS.TEXT_RESOLUTION);
 
         const scoreLabel = this.add
             .text(0, -38, "최종 점수", {
@@ -64,7 +67,8 @@ export default class DeathScene extends Phaser.Scene {
                 color: "#84b4ff",
                 fontStyle: "bold",
             })
-            .setOrigin(0.5);
+            .setOrigin(0.5)
+            .setResolution(FE_CONSTANTS.TEXT_RESOLUTION);
 
         const scoreValue = this.add
             .text(0, 4, `${data.score ?? 0}`, {
@@ -74,7 +78,8 @@ export default class DeathScene extends Phaser.Scene {
                 fontStyle: "bold",
             })
             .setOrigin(0.5)
-            .setStroke("#0a1324", 6);
+            .setStroke("#0a1324", 6)
+            .setResolution(FE_CONSTANTS.TEXT_RESOLUTION);
 
         const bestLabel = this.add
             .text(0, 62, "최고 기록", {
@@ -83,7 +88,8 @@ export default class DeathScene extends Phaser.Scene {
                 color: "#ffd166",
                 fontStyle: "bold",
             })
-            .setOrigin(0.5);
+            .setOrigin(0.5)
+            .setResolution(FE_CONSTANTS.TEXT_RESOLUTION);
 
         const bestValue = this.add
             .text(0, 88, `${data.bestScore ?? data.score ?? 0}`, {
@@ -93,7 +99,8 @@ export default class DeathScene extends Phaser.Scene {
                 fontStyle: "bold",
             })
             .setOrigin(0.5)
-            .setStroke("#2d220f", 4);
+            .setStroke("#2d220f", 4)
+            .setResolution(FE_CONSTANTS.TEXT_RESOLUTION);
 
         const buttonGfx = this.add.graphics();
         buttonGfx.fillStyle(0x00ff88, 0.17);
@@ -108,7 +115,8 @@ export default class DeathScene extends Phaser.Scene {
                 color: "#00ff88",
                 fontStyle: "bold",
             })
-            .setOrigin(0.5);
+            .setOrigin(0.5)
+            .setResolution(FE_CONSTANTS.TEXT_RESOLUTION);
 
         const buttonHitArea = this.add
             .rectangle(0, 146, 220, 58, 0x000000, 0.001)

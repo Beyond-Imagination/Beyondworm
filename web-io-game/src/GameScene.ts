@@ -288,6 +288,9 @@ export default class GameScene extends Phaser.Scene {
         // 텍스트를 중앙 정렬
         nicknameText.setOrigin(0.5, 0.5);
 
+        // 텍스트를 뚜렷하게 보이도록
+        nicknameText.setResolution(FE_CONSTANTS.TEXT_RESOLUTION);
+
         // 높은 depth로 설정하여 다른 요소들 위에 표시
         nicknameText.setDepth(FE_CONSTANTS.ZORDER_NICKNAME);
 
