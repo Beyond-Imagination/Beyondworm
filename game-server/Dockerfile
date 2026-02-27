@@ -41,6 +41,7 @@ COPY game-server/package*.json ./
 COPY --from=builder /app/game-server/node_modules ./node_modules
 COPY --from=builder /app/game-server/dist ./dist
 WORKDIR /app
+COPY --from=builder /app/shared/node_modules ./shared/node_modules
 COPY --from=builder /app/shared/package.json ./shared/package.json
 COPY --from=builder /app/shared/dist ./shared/dist
 

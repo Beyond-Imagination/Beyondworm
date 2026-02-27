@@ -30,6 +30,7 @@ COPY lobby-server/package*.json ./
 COPY --from=builder /app/lobby-server/node_modules ./node_modules
 COPY --from=builder /app/lobby-server/dist ./dist
 WORKDIR /app
+COPY --from=builder /app/shared/node_modules ./shared/node_modules
 COPY --from=builder /app/shared/package.json ./shared/package.json
 COPY --from=builder /app/shared/dist ./shared/dist
 
