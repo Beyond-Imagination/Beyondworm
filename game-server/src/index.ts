@@ -13,6 +13,7 @@ import {
     handleSprintFoodDrop,
     handleKilledWorms,
     handleMapBoundaryExceedingWorms,
+    initializePositionHistory,
 } from "./game/engine";
 import { setupSocketHandlers } from "./socket/handlers";
 import { registerWithLobby } from "./lobby/lobbyApi";
@@ -61,6 +62,7 @@ function initializeBots(
     worms: Map<string, Worm>,
     targetDirections: Map<string, { x: number; y: number }>,
     botMovementStrategies: Map<string, MovementStrategy>,
+    positionHistories: Map<string, { x: number; y: number }[]>,
 ): Worm[] {
     const createdBots: Worm[] = [];
 
@@ -72,6 +74,7 @@ function initializeBots(
         worms.set(bot.id, bot);
         targetDirections.set(bot.id, { x: bot.direction.x, y: bot.direction.y });
         botMovementStrategies.set(bot.id, createMovementStrategy(botType));
+        positionHistories.set(bot.id, initializePositionHistory(bot));
 
         createdBots.push(bot);
     }
@@ -86,6 +89,7 @@ function removeAllBots(
     worms: Map<string, Worm>,
     targetDirections: Map<string, { x: number; y: number }>,
     botMovementStrategies: Map<string, MovementStrategy>,
+    positionHistories: Map<string, { x: number; y: number }[]>,
 ): void {
     const botIds: string[] = [];
 
@@ -101,6 +105,7 @@ function removeAllBots(
         worms.delete(botId);
         targetDirections.delete(botId);
         botMovementStrategies.delete(botId);
+        positionHistories.delete(botId);
     }
 
     console.log(`🤖 Removed ${botIds.length} bots - no players online`);
@@ -114,6 +119,7 @@ function manageBots(
     worms: Map<string, Worm>,
     targetDirections: Map<string, { x: number; y: number }>,
     botMovementStrategies: Map<string, MovementStrategy>,
+    positionHistories: Map<string, { x: number; y: number }[]>,
     playerCount: number,
 ): Worm[] {
     let botCount = 0;
@@ -126,13 +132,13 @@ function manageBots(
     if (playerCount === 0) {
         // 서버에 연결된 플레이어가 없으면 모든 봇 제거
         if (botCount > 0) {
-            removeAllBots(worms, targetDirections, botMovementStrategies);
+            removeAllBots(worms, targetDirections, botMovementStrategies, positionHistories);
         }
         return [];
     } else if (botCount === 0) {
         // 플레이어가 있는데 봇이 없으면 봇 생성
         console.log(`🤖 Creating bots - ${playerCount} players online`);
-        return initializeBots(worms, targetDirections, botMovementStrategies);
+        return initializeBots(worms, targetDirections, botMovementStrategies, positionHistories);
     }
 
     return [];
@@ -168,21 +174,28 @@ function updateAndBroadcastGameState(
     foods: Map<string, Food>,
     targetDirections: Map<string, { x: number; y: number }>,
     botMovementStrategies: Map<string, MovementStrategy>,
+    positionHistories: Map<string, { x: number; y: number }[]>,
 ): void {
     // 봇 관리 (주기적으로 체크) - 새로 생성된 봇들 수집
-    const newlyCreatedBots = manageBots(worms, targetDirections, botMovementStrategies, io.engine.clientsCount);
+    const newlyCreatedBots = manageBots(
+        worms,
+        targetDirections,
+        botMovementStrategies,
+        positionHistories,
+        io.engine.clientsCount,
+    );
 
     // 먹이 업데이트 (부족한 먹이 추가)
     updateFoods(foods);
 
     // 부활 처리 및 제거된 플레이어 수집
-    const removedPlayerIds = handleKilledWorms(worms, targetDirections, botMovementStrategies);
+    const removedPlayerIds = handleKilledWorms(worms, targetDirections, botMovementStrategies, positionHistories);
 
     // 스프린트 중 먹이 떨어뜨리기 처리
     handleSprintFoodDrop(worms, foods, deltaTime);
 
     // 지렁이 상태 업데이트
-    updateWorld(deltaTime, worms, foods, targetDirections, botMovementStrategies);
+    updateWorld(deltaTime, worms, foods, targetDirections, botMovementStrategies, positionHistories);
 
     // 맵 경계 초과 지렁이 처리
     const mapBoundaryExceedingWorms = handleMapBoundaryExceedingWorms(worms, foods);
@@ -238,6 +251,7 @@ function createGameLoop(
     foods: Map<string, Food>,
     targetDirections: Map<string, { x: number; y: number }>,
     botMovementStrategies: Map<string, MovementStrategy>,
+    positionHistories: Map<string, { x: number; y: number }[]>,
 ): () => void {
     let lastTickTime = Date.now();
 
@@ -246,7 +260,15 @@ function createGameLoop(
         const deltaTime = (now - lastTickTime) / 1000;
         lastTickTime = now;
 
-        updateAndBroadcastGameState(io, deltaTime, worms, foods, targetDirections, botMovementStrategies);
+        updateAndBroadcastGameState(
+            io,
+            deltaTime,
+            worms,
+            foods,
+            targetDirections,
+            botMovementStrategies,
+            positionHistories,
+        );
 
         let nextSleepTime = GAME_CONSTANTS.TICK_MS - (Date.now() - lastTickTime); // 다음 틱까지 대기 시간 계산
         if (nextSleepTime < 0) {
@@ -301,11 +323,17 @@ async function main() {
      */
     const botMovementStrategies = new Map<string, MovementStrategy>();
 
+    /**
+     * 각 지렁이의 경로 기록을 저장하는 맵 (path-following용)
+     * Key: wormId, Value: 경로 기록 배열 (과거 → 최신 순서)
+     */
+    const positionHistories = new Map<string, { x: number; y: number }[]>();
+
     // Socket.IO 이벤트 핸들러 설정
-    setupSocketHandlers(io, worms, foods, targetDirections);
+    setupSocketHandlers(io, worms, foods, targetDirections, positionHistories);
 
     // 게임 루프 시작
-    const gameLoop = createGameLoop(io, worms, foods, targetDirections, botMovementStrategies);
+    const gameLoop = createGameLoop(io, worms, foods, targetDirections, botMovementStrategies, positionHistories);
     gameLoop();
 
     // 서버 종료 시그널 처리

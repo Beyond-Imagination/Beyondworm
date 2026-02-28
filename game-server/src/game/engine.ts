@@ -124,9 +124,17 @@ function updateWormRotation(worm: Worm, targetDirection: { x: number; y: number 
 }
 
 /**
+ * 지렁이의 경로 기록을 초기화합니다.
+ */
+export function initializePositionHistory(worm: Worm): { x: number; y: number }[] {
+    // 세그먼트 위치를 역순으로 저장 (과거 → 최신 순서)
+    return worm.segments.map((s) => ({ x: s.x, y: s.y })).reverse();
+}
+
+/**
  * 지렁이 머리의 위치를 업데이트합니다.
  */
-function updateWormHead(worm: Worm, deltaTime: number): void {
+function updateWormHead(worm: Worm, deltaTime: number, positionHistory: { x: number; y: number }[]): void {
     const dirX = worm.direction.x;
     const dirY = worm.direction.y;
     const magnitude = Math.sqrt(dirX * dirX + dirY * dirY);
@@ -144,27 +152,67 @@ function updateWormHead(worm: Worm, deltaTime: number): void {
         head.x += normalizedDirX * speed * deltaTime;
         head.y += normalizedDirY * speed * deltaTime;
     }
+
+    // 머리의 새 위치를 경로 기록에 추가 (배열 끝 = 최신)
+    const head = worm.segments[0];
+    positionHistory.push({ x: head.x, y: head.y });
 }
 
 /**
- * 지렁이의 몸통 세그먼트들이 머리를 따라오도록 업데이트합니다.
+ * 지렁이의 몸통 세그먼트들이 머리의 경로를 따라가도록 업데이트합니다.
+ * 경로 기록을 역순(최신→과거)으로 걸어가며 각 세그먼트를 i × SEGMENT_SPACING 거리 지점에 배치합니다.
  */
-function updateWormSegments(worm: Worm): void {
-    // 세그먼트들 따라오게 하기
-    for (let i = 1; i < worm.segments.length; i++) {
-        const prev = worm.segments[i - 1];
-        const curr = worm.segments[i];
+function updateWormSegments(worm: Worm, positionHistory: { x: number; y: number }[]): void {
+    if (positionHistory.length < 2) return;
 
-        const dx = prev.x - curr.x;
-        const dy = prev.y - curr.y;
-        const distance = Math.hypot(dx, dy);
+    let segmentIndex = 1;
+    let targetDistance = GAME_CONSTANTS.SEGMENT_SPACING;
+    let accumulatedDistance = 0;
 
-        if (distance > GAME_CONSTANTS.SEGMENT_SPACING) {
-            const moveX = (dx / distance) * (distance - GAME_CONSTANTS.SEGMENT_SPACING);
-            const moveY = (dy / distance) * (distance - GAME_CONSTANTS.SEGMENT_SPACING);
+    // 경로 기록을 역순(최신→과거)으로 순회
+    for (let j = positionHistory.length - 1; j > 0 && segmentIndex < worm.segments.length; j--) {
+        const p1 = positionHistory[j]; // 최신 쪽
+        const p2 = positionHistory[j - 1]; // 과거 쪽
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const pathSegmentLength = Math.hypot(dx, dy);
 
-            curr.x += moveX;
-            curr.y += moveY;
+        // 이 경로 구간 내에 배치할 수 있는 세그먼트가 있는지 확인
+        while (segmentIndex < worm.segments.length && accumulatedDistance + pathSegmentLength >= targetDistance) {
+            const remaining = targetDistance - accumulatedDistance;
+            const t = pathSegmentLength > 0 ? remaining / pathSegmentLength : 0;
+
+            worm.segments[segmentIndex].x = p1.x + dx * t;
+            worm.segments[segmentIndex].y = p1.y + dy * t;
+
+            segmentIndex++;
+            targetDistance = segmentIndex * GAME_CONSTANTS.SEGMENT_SPACING;
+        }
+
+        accumulatedDistance += pathSegmentLength;
+    }
+
+    // 경로가 부족한 경우 남은 세그먼트는 경로의 가장 오래된 위치에 배치
+    if (segmentIndex < worm.segments.length) {
+        const lastPoint = positionHistory[0];
+        for (let i = segmentIndex; i < worm.segments.length; i++) {
+            worm.segments[i].x = lastPoint.x;
+            worm.segments[i].y = lastPoint.y;
+        }
+    }
+
+    // 경로 기록 트리밍 - 필요한 길이 + 여유분만 유지
+    const maxNeededDistance = worm.segments.length * GAME_CONSTANTS.SEGMENT_SPACING;
+    let totalDist = 0;
+    for (let j = positionHistory.length - 1; j > 0; j--) {
+        totalDist += Math.hypot(
+            positionHistory[j].x - positionHistory[j - 1].x,
+            positionHistory[j].y - positionHistory[j - 1].y,
+        );
+        if (totalDist > maxNeededDistance + GAME_CONSTANTS.SEGMENT_SPACING * 2) {
+            // j-1 이전의 기록은 불필요하므로 제거
+            positionHistory.splice(0, j - 1);
+            break;
         }
     }
 }
@@ -176,6 +224,7 @@ function updateSingleWorm(
     worm: Worm,
     deltaTime: number,
     targetDirections: Map<string, { x: number; y: number }>,
+    positionHistories: Map<string, { x: number; y: number }[]>,
 ): void {
     // 부드러운 회전 로직 적용
     const targetDirection = targetDirections.get(worm.id);
@@ -183,11 +232,14 @@ function updateSingleWorm(
         updateWormRotation(worm, targetDirection, deltaTime);
     }
 
-    // 머리 위치 업데이트
-    updateWormHead(worm, deltaTime);
+    const positionHistory = positionHistories.get(worm.id);
+    if (!positionHistory) return;
 
-    // 몸통 세그먼트들 업데이트
-    updateWormSegments(worm);
+    // 머리 위치 업데이트 + 경로 기록 추가
+    updateWormHead(worm, deltaTime, positionHistory);
+
+    // 몸통 세그먼트들 업데이트 (경로 기반)
+    updateWormSegments(worm, positionHistory);
 }
 
 /**
@@ -204,6 +256,7 @@ export function updateWorld(
     foods: Map<string, Food>,
     targetDirections: Map<string, { x: number; y: number }>,
     botMovementStrategies: Map<string, MovementStrategy>,
+    positionHistories: Map<string, { x: number; y: number }[]>,
 ): void {
     const allWorms = Array.from(worms.values());
 
@@ -214,7 +267,7 @@ export function updateWorld(
         }
 
         // 개별 지렁이 상태 업데이트
-        updateSingleWorm(worm, deltaTime, targetDirections);
+        updateSingleWorm(worm, deltaTime, targetDirections, positionHistories);
     }
 }
 
@@ -294,6 +347,7 @@ function removeDeadPlayer(
     playerId: string,
     worms: Map<string, Worm>,
     targetDirections: Map<string, { x: number; y: number }>,
+    positionHistories: Map<string, { x: number; y: number }[]>,
 ): void {
     const worm = worms.get(playerId);
     if (worm && worm.isDead && worm.type === WormType.Player) {
@@ -302,6 +356,7 @@ function removeDeadPlayer(
         // 플레이어 상태 제거
         worms.delete(playerId);
         targetDirections.delete(playerId);
+        positionHistories.delete(playerId);
     }
 }
 
@@ -313,15 +368,16 @@ export function handleKilledWorms(
     worms: Map<string, Worm>,
     targetDirections: Map<string, { x: number; y: number }>,
     botMovementStrategies: Map<string, MovementStrategy>,
+    positionHistories: Map<string, { x: number; y: number }[]>,
 ): string[] {
     const removedPlayerIds: string[] = [];
 
     for (const [wormId, worm] of worms) {
         if (worm.isDead) {
             if (worm.type === WormType.Bot) {
-                respawnBot(wormId, worms, targetDirections, botMovementStrategies);
+                respawnBot(wormId, worms, targetDirections, botMovementStrategies, positionHistories);
             } else if (worm.type === WormType.Player) {
-                removeDeadPlayer(wormId, worms, targetDirections);
+                removeDeadPlayer(wormId, worms, targetDirections, positionHistories);
                 removedPlayerIds.push(wormId);
             }
         }
@@ -335,6 +391,7 @@ function respawnBot(
     worms: Map<string, Worm>,
     targetDirections: Map<string, { x: number; y: number }>,
     botMovementStrategies: Map<string, MovementStrategy>,
+    positionHistories: Map<string, { x: number; y: number }[]>,
 ): void {
     // 기존 봇 데이터 제거
     const bot = worms.get(botId);
@@ -344,6 +401,7 @@ function respawnBot(
     worms.delete(botId);
     targetDirections.delete(botId);
     botMovementStrategies.delete(botId);
+    positionHistories.delete(botId);
 
     // 새로운 랜덤 타입의 봇 생성
     const numericBotTypes = Object.values(BotType).filter((v) => typeof v === "number") as BotType[];
@@ -356,6 +414,7 @@ function respawnBot(
     worms.set(botId, newBot);
     targetDirections.set(botId, { x: newBot.direction.x, y: newBot.direction.y });
     botMovementStrategies.set(botId, createMovementStrategy(botType));
+    positionHistories.set(botId, initializePositionHistory(newBot));
 
     console.log(`🤖 Bot ${botId} respawned as type ${botType}`);
 }
