@@ -1,7 +1,7 @@
 import { Socket, Server as SocketIOServer } from "socket.io";
 import { Worm, Food } from "@beyondworm/shared";
 import { createPlayerWorm } from "../worm/factory";
-import { validateAndProcessFoodEaten, validateAndProcessCollision } from "../game/engine";
+import { validateAndProcessFoodEaten, validateAndProcessCollision, initializePositionHistory } from "../game/engine";
 import { updateServerStatus } from "../lobby/lobbyApi";
 
 /**
@@ -23,6 +23,7 @@ function handleSetUsername(
     worms: Map<string, Worm>,
     foods: Map<string, Food>,
     targetDirections: Map<string, { x: number; y: number }>,
+    positionHistories: Map<string, { x: number; y: number }[]>,
 ): void {
     if (worms.has(socket.id)) {
         console.warn(`Player ${socket.id} is trying to set username again.`);
@@ -36,6 +37,7 @@ function handleSetUsername(
     // 상태 저장
     worms.set(socket.id, playerWorm);
     targetDirections.set(socket.id, { x: playerWorm.direction.x, y: playerWorm.direction.y });
+    positionHistories.set(socket.id, initializePositionHistory(playerWorm));
 
     // 로비 서버에 플레이어 수 업데이트
     void updateServerStatus({ playerCount: io.engine.clientsCount });
@@ -61,12 +63,14 @@ function handlePlayerDisconnection(
     io: SocketIOServer,
     worms: Map<string, Worm>,
     targetDirections: Map<string, { x: number; y: number }>,
+    positionHistories: Map<string, { x: number; y: number }[]>,
 ): void {
     console.log("👋 Client disconnected:", socket.id);
 
     // 상태 정리
     worms.delete(socket.id);
     targetDirections.delete(socket.id);
+    positionHistories.delete(socket.id);
 
     // 로비 서버에 플레이어 수 업데이트
     void updateServerStatus({ playerCount: io.engine.clientsCount });
@@ -163,6 +167,7 @@ export function setupSocketHandlers(
     worms: Map<string, Worm>,
     foods: Map<string, Food>,
     targetDirections: Map<string, { x: number; y: number }>,
+    positionHistories: Map<string, { x: number; y: number }[]>,
 ): void {
     io.on("connection", (socket: Socket) => {
         // 플레이어 연결 처리
@@ -170,7 +175,7 @@ export function setupSocketHandlers(
 
         // 연결 해제 이벤트
         socket.on("disconnect", () => {
-            handlePlayerDisconnection(socket, io, worms, targetDirections);
+            handlePlayerDisconnection(socket, io, worms, targetDirections, positionHistories);
         });
 
         // 상태 업데이트 이벤트
@@ -199,7 +204,7 @@ export function setupSocketHandlers(
 
         // username 설정 이벤트
         socket.on("set-username", (data: { username: string }) => {
-            handleSetUsername(socket, io, data, worms, foods, targetDirections);
+            handleSetUsername(socket, io, data, worms, foods, targetDirections, positionHistories);
         });
     });
 }
