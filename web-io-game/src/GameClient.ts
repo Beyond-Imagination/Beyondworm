@@ -1,6 +1,6 @@
 import { io, Socket } from "socket.io-client";
 import GameScene from "./GameScene";
-import { Food, GAME_CONSTANTS, Worm, RankingData } from "@beyondworm/shared";
+import { Food, GAME_CONSTANTS, Worm, RankingData, WormDeathData } from "@beyondworm/shared";
 
 export default class GameClient {
     private socket: Socket;
@@ -92,13 +92,19 @@ export default class GameClient {
             this.scene.handleFoodEatenFromServer(collisions);
         });
 
-        this.socket.on("worm-died", (data: { killedWormId: string; killerWormId: string | null }) => {
+        this.socket.on("worm-died", (data: WormDeathData) => {
             // 지렁이가 죽었을 때 처리
             this.scene.handleWormDiedFromServer(data);
 
             // 현재 플레이어가 죽으면 DeathScene으로 전환
             if (data.killedWormId === this.playerId) {
-                this.scene.showDeathScreen();
+                const reasonMessage =
+                    data.deathReason === "map_boundary"
+                        ? "맵의 경계를 넘어서 사망했습니다."
+                        : data.killerNickname
+                          ? `${data.killerNickname} 지렁이에 의해 사망했습니다.`
+                          : "다른 지렁이에 의해 사망했습니다.";
+                this.scene.showDeathScreen(reasonMessage);
             }
         });
 
