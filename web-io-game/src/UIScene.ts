@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import GameSettings from "./GameSettings";
 import { GAME_CONSTANTS, RankingData } from "@beyondworm/shared";
+import { FE_CONSTANTS } from "./constants";
 
 export default class UIScene extends Phaser.Scene {
     private foodPanel!: Phaser.GameObjects.Container;
@@ -41,6 +42,7 @@ export default class UIScene extends Phaser.Scene {
             .setOrigin(0, 0)
             .setStroke("#0a1324", 4)
             .setShadow(0, 0, "#00ff88", 8, true, true)
+            .setResolution(FE_CONSTANTS.TEXT_RESOLUTION)
             .setDepth(10000);
 
         this.createFoodDashboard();
@@ -73,14 +75,17 @@ export default class UIScene extends Phaser.Scene {
                 color: "#84b4ff",
                 fontStyle: "bold",
             })
-            .setAlpha(0.9);
+            .setAlpha(0.9)
+            .setResolution(FE_CONSTANTS.TEXT_RESOLUTION);
 
-        this.foodValueText = this.add.text(16, 28, "0", {
-            fontFamily: "Trebuchet MS, Arial, sans-serif",
-            fontSize: "33px",
-            color: "#00ff88",
-            fontStyle: "bold",
-        });
+        this.foodValueText = this.add
+            .text(16, 28, "0", {
+                fontFamily: "Trebuchet MS, Arial, sans-serif",
+                fontSize: "33px",
+                color: "#00ff88",
+                fontStyle: "bold",
+            })
+            .setResolution(FE_CONSTANTS.TEXT_RESOLUTION);
 
         this.foodPanel = this.add.container(this.scale.width - 220, 20, [panelBackground, label, this.foodValueText]);
         this.foodPanel.setDepth(10000);
@@ -110,7 +115,8 @@ export default class UIScene extends Phaser.Scene {
                 align: "center",
             })
             .setOrigin(0.5, 0)
-            .setStroke("#0a1324", 4);
+            .setStroke("#0a1324", 4)
+            .setResolution(FE_CONSTANTS.TEXT_RESOLUTION);
 
         const divider = this.add.graphics();
         divider.lineStyle(1, 0x4e7fc6, 0.4);
@@ -127,7 +133,8 @@ export default class UIScene extends Phaser.Scene {
                     align: "left",
                 })
                 .setOrigin(0, 0)
-                .setStroke("#0a1324", 3);
+                .setStroke("#0a1324", 3)
+                .setResolution(FE_CONSTANTS.TEXT_RESOLUTION);
             this.rankingTexts.push(rankText);
         }
 

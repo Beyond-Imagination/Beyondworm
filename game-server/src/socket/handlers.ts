@@ -3,6 +3,7 @@ import { Worm, Food } from "@beyondworm/shared";
 import { createPlayerWorm } from "../worm/factory";
 import { validateAndProcessFoodEaten, validateAndProcessCollision } from "../game/engine";
 import { updateServerStatus } from "../lobby/lobbyApi";
+import { createWormDeathPayload } from "../utils/wormDeath";
 
 /**
  * 플레이어 연결 시 초기화를 처리합니다.
@@ -150,8 +151,16 @@ function handleCollisionReport(
     const success = validateAndProcessCollision(socket.id, data.colliderWormId, worms, foods);
 
     if (success) {
+        const killerWorm = worms.get(socket.id);
         // 검증 성공 - 모든 클라이언트에게 지렁이가 죽었음을 알림
-        io.emit("worm-died", { killedWormId: data.colliderWormId, killerWormId: socket.id });
+        io.emit(
+            "worm-died",
+            createWormDeathPayload({
+                killedWormId: data.colliderWormId,
+                killerWorm,
+                deathReason: "worm_collision",
+            }),
+        );
     }
 }
 

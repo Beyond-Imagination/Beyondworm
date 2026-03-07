@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { FE_CONSTANTS } from "./constants";
 import { WormState } from "./WormState";
 import GameClient from "./GameClient";
-import { Food, GAME_CONSTANTS, Worm } from "@beyondworm/shared";
+import { Food, GAME_CONSTANTS, Worm, WormDeathData } from "@beyondworm/shared";
 import FoodUI from "./FoodUI";
 import { RankingData } from "@beyondworm/shared";
 
@@ -288,6 +288,9 @@ export default class GameScene extends Phaser.Scene {
         // 텍스트를 중앙 정렬
         nicknameText.setOrigin(0.5, 0.5);
 
+        // 텍스트를 뚜렷하게 보이도록
+        nicknameText.setResolution(FE_CONSTANTS.TEXT_RESOLUTION);
+
         // 높은 depth로 설정하여 다른 요소들 위에 표시
         nicknameText.setDepth(FE_CONSTANTS.ZORDER_NICKNAME);
 
@@ -417,7 +420,7 @@ export default class GameScene extends Phaser.Scene {
     /**
      * 서버에서 지렁이가 죽었을 때 처리
      */
-    public handleWormDiedFromServer(data: { killedWormId: string; killerWormId: string | null }) {
+    public handleWormDiedFromServer(data: WormDeathData) {
         if (data.killerWormId) console.log(`💀 Worm died: ${data.killedWormId} killed by ${data.killerWormId}`);
         else console.log(`💀 Worm died: ${data.killedWormId} naturally`); // 자연사
 
@@ -587,7 +590,7 @@ export default class GameScene extends Phaser.Scene {
     /**
      * 플레이어가 죽었을 때 DeathScene을 표시합니다.
      */
-    public showDeathScreen() {
+    public showDeathScreen(reasonMessage?: string) {
         console.log("🎮 Showing death screen");
         const defaultCount = GAME_CONSTANTS.SEGMENT_DEFAULT_COUNT ?? 0;
         const segmentCount = this.playerState?.segments?.length ?? defaultCount;
@@ -597,7 +600,7 @@ export default class GameScene extends Phaser.Scene {
 
         // DeathScene을 오버레이로 시작 (GameScene은 계속 실행됨)
         if (!this.scene.isActive("DeathScene")) {
-            this.scene.launch("DeathScene", { score, bestScore });
+            this.scene.launch("DeathScene", { score, bestScore, reasonMessage });
         }
     }
 
