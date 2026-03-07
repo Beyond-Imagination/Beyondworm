@@ -5,8 +5,8 @@ export const FE_CONSTANTS = {
     CAMERA_PADDING: 200, // 카메라가 맵 밖을 얼마나 더 보여줄지 결정하는 값
 
     // Map
-    BOUNDARY_COLOR: 0xff0000, // 빨간색, 맵의 죽음의 영역
-    BOUNDARY_TRANSPARENCY: 0.2, // 20% 죽음의 영역 투명도
+    BOUNDARY_COLOR: 0xff3350, // targetFE 톤의 경계색
+    BOUNDARY_TRANSPARENCY: 0.26, // 맵 밖 위험영역 투명도
 
     // UI
     ZORDER_SEGMENT: 1000,
@@ -14,11 +14,11 @@ export const FE_CONSTANTS = {
     WORM_POSITION_LERP_FACTOR: 0.3,
     NICKNAME_Y_OFFSET: 20,
     NICKNAME_STYLE: {
-        fontSize: "14px",
-        color: "#ffffff",
-        stroke: "#000000",
-        strokeThickness: 2,
-        fontFamily: "Arial, sans-serif",
+        fontSize: "15px",
+        color: "#c2d8ff",
+        stroke: "#0a1324",
+        strokeThickness: 3,
+        fontFamily: "Trebuchet MS, Arial, sans-serif",
     },
     ZORDER_NICKNAME: 1000,
 };
