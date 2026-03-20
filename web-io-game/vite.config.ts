@@ -13,7 +13,7 @@ export default defineConfig(({ command }) => {
 
     return {
         root: ".", // index.html 이 root 에 있으니 그대로
-        base: "/Beyondworm/",
+        base: "/",
         build: {
             outDir: "dist/client",
             emptyOutDir: true,
