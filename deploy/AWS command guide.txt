@@ -1,0 +1,16 @@
+Docker 재실행
+1. beyondworm 폴더 이동 (docker-compose.prod.yml 파일이 있는 위치)
+2. docker compose --env-file env/.env down  (.env 파일에서 환경 변수를 읽어와서 컨테이너를 중지하고 제거합니다.)(기본적으로 .env파일은 docker-compose.yml과 같은 디렉토리에 위치하지만, --env-file 옵션을 사용하여 다른 위치에 있는 .env 파일을 지정할 수 있습니다.)
+3. docker compose --env-file env/.env up -d
+
+
+웹훅 컨테이너 재생성:                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
+docker stop bw-webhook && docker rm bw-webhook                                                                                                                                                                                                  
+                                                                                                                                                                                                                                                    
+docker run -d --name bw-webhook --restart=always \                                                                                                                                                                                            
+  -p 127.0.0.1:9000:9000 \                                                                                                                                                                                                                    
+  --env-file ./webhook/.env-webhook \                                                                                                                                                                                                       
+  -v "$PWD":/webhook \                                                                                                                                                                                                                      
+  -v /var/run/docker.sock:/var/run/docker.sock \                                                                                                                                                                                            
+  -v $(which docker):/usr/bin/docker:ro \                                                                                                                                                                                                   
+  almir/webhook -verbose -hooks=/webhook/webhook/hooks.json -hotreload  
