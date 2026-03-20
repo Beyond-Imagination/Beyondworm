@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-LOG=/hooks/deploy.log
+LOG=/webhook/deploy.log
 
 {
   TS=$(date "+%Y-%m-%dT%H:%M:%S%z")
